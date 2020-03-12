@@ -24,6 +24,7 @@ get_file(){
 		new_md5=`md5sum $1 | awk -F " " '{print $1}'`
 		if [ "$tmp_md5" = "$new_md5" ]; then
 			rm -f "$1".bak
+			logger -t "【Privoxy】" "$2文件下载成功"
 		else
 			logger -t "【Privoxy】" "$2文件两次下载MD5不相同，重新下载"
 			get_file
