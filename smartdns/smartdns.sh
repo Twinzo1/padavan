@@ -105,6 +105,7 @@ cat > $SMARTDNS_CONF_DIR/smartdns_blacklist-ip.conf << EOB
 EOB
 ###########################################################
 nvram commit
+logger -t "【SmartDNS】" "配置设置完成"
 
 sdns_enable=`nvram get sdns_enable`
 sdns_name=`nvram get sdns_name`
@@ -139,7 +140,7 @@ if [ $(nvram get ss_enable) = 1 ] && [ $(nvram get ss_run_mode) = "router" ] && 
 	nvram set sdns_enable=0
 	exit 0
 else
-	logger -t "SmartDNS" "SS模式没问题"
+	logger -t "【SmartDNS】" "SS模式没有问题"
 fi
 }
 
@@ -151,7 +152,7 @@ no-resolv
 server=127.0.0.1#$sdns_port
 EOF
 	/sbin/restart_dhcpd
-	logger -t "SmartDNS" "添加DNS转发到$sdns_port端口"
+	logger -t "【SmartDNS】" "添加DNS转发到$sdns_port端口"
 }
 
 stop_forward_dnsmasq() {
@@ -186,7 +187,7 @@ set_iptable()
 		fi
 		ip6tables -t nat -A PREROUTING -p udp -d $IP --dport 53 -j REDIRECT --to-ports $sdns_port >/dev/null 2>&1
 	done
-	logger -t "SmartDNS" "重定向53端口"
+	logger -t "【SmartDNS】" "重定向53端口"
 }
 
 clear_iptable()
@@ -210,7 +211,7 @@ clear_iptable()
 		ip6tables -t nat -D PREROUTING -p udp -d $IP --dport 53 -j REDIRECT --to-ports $OLD_PORT >/dev/null 2>&1
 		ip6tables -t nat -D PREROUTING -p tcp -d $IP --dport 53 -j REDIRECT --to-ports $OLD_PORT >/dev/null 2>&1
 	done
-	logger -t "SmartDNS" "清理防火墙规则"
+	logger -t "【SmartDNS】" "清理防火墙规则"
 }
 
 conf_append(){
@@ -302,7 +303,7 @@ gensdnssecond
 	done
 	if [ "$ss_white" = "1" ]; then
 		rm -f /tmp/whitelist.conf
-		logger -t "SmartDNS" "开始处理白名单IP"
+		logger -t "【SmartDNS】" "开始处理白名单IP"
 		listFile="/etc/storage/chinadns/chnroute.txt"
 		[ ! -s $listFile ] && listFile="/opt/app/ss_tproxy/rule/chnroute.txt"
 		[ ! -s $listFile ] && logger -t "SmartDNS" "chnroute.txt文件不存在，如果知道位置请自行修改脚本文件" && return
@@ -311,7 +312,7 @@ gensdnssecond
 	fi
 	if [ "$ss_black" = "1" ]; then
 		rm -f /tmp/blacklist.conf
-		logger -t "SmartDNS" "开始处理黑名单IP"
+		logger -t "【SmartDNS】" "开始处理黑名单IP"
 		listFile="/etc/storage/chinadns/chnroute.txt"
 		[ ! -s $listFile ] && listFile="/opt/app/ss_tproxy/rule/chnroute.txt"
 		[ ! -s $listFile ] && logger -t "SmartDNS" "chnroute.txt文件不存在，如果知道位置请自行修改脚本文件" && return
@@ -342,12 +343,12 @@ dw_smartdns(){
 #	curl -k -s -o /opt/bin/smartdns --connect-timeout 10 --retry 3 https://raw.githubusercontent.com/Twinzo1/padavan_smartdns/master/smartdns
 	curl -k -s -o $smartdns_file --connect-timeout 10 --retry 3 https://dev.tencent.com/u/dtid_39de1afb676d0d78/p/kp/git/raw/master/smartdns
 	if [ ! -f "$smartdns_file" ]; then
-		logger -t "SmartDNS" "SmartDNS二进制文件下载失败，可能是地址失效或者网络异常！"
+		logger -t "【SmartDNS】" "SmartDNS二进制文件下载失败，可能是地址失效或者网络异常！"
 		nvram set sdns_enable=0
 		stop_smartdns
 		exit 0
 	else
-		logger -t "SmartDNS" "SmartDNS二进制文件下载成功"
+		logger -t "【SmartDNS】" "SmartDNS二进制文件下载成功"
 		chmod -R 777 $smartdns_file
 	fi
 }
@@ -356,7 +357,7 @@ start_smartdns(){
 	[ ! -f "$smartdns_file" ] && dw_smartdns
 
 	args=""
-	logger -t "SmartDNS" "创建配置文件."
+	logger -t "【SmartDNS】" "创建配置文件."
 	gensmartconf
 
 	conf_append "conf-file" "$ADDRESS_CONF"
@@ -373,7 +374,7 @@ start_smartdns(){
 	#		procd_set_param env TZ="$SET_TZ"
 		#fi
 	$smartdns_file -f -c $SMARTDNS_CONF $args &>/dev/null &
-	logger -t "SmartDNS" "SmartDNS启动成功"
+	logger -t "【SmartDNS】" "SmartDNS启动成功"
 	if [ $sdns_redirect = "2" ]; then
 		set_iptable $sdns_ipv6_server $sdns_tcp_server
 	elif [ $sdns_redirect = "1" ]; then
@@ -391,7 +392,7 @@ stop_smartdns(){
 	elif [ "$sdns_redirect" = "1" ]; then
 		stop_forward_dnsmasq
 	fi
-	logger -t "SmartDNS" "SmartDNS已关闭"
+	logger -t "【SmartDNS】" "SmartDNS已关闭"
 }
 
 case $1 in
