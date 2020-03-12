@@ -1,12 +1,2 @@
-# padavan_smartdns
-script smartdns for hiboy padavan
-不能与与v2ray同用
-在自定义脚本防火墙前添加:
-
-```logger -t "SmartDNS" "正在下载smartdns脚本"```
-
-```curl -k -s -o /opt/bin/smartdns.sh --connect-timeout 10 --retry 3 https://raw.githubusercontent.com/Twinzo1/padavan_smartdns/master/smartdns.sh ```
-
-```chmod 755 /opt/bin/smartdns.sh && /opt/bin/smartdns.sh start```
-
-hiboy已经内置smartdns，在搭建web环境→chinadns-ng里
+# padavan的一些插件
+在github配置好，在固件添加命令行直接开启远程下载，傻瓜式使用
