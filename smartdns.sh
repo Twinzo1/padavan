@@ -7,32 +7,34 @@ BLACKLIST_IP_CONF="$SMARTDNS_CONF_DIR/smartdns_blacklist-ip.conf"
 # WHITELIST_IP_CONF="$SMARTDNS_CONF_DIR/smartdns_whitelist-ip.conf"
 CUSTOM_CONF="$SMARTDNS_CONF_DIR/smartdns_custom.conf"
 smartdns_file="/opt/bin/smartdns"
-##常规设置
+##########################常规设置###############################
 nvram set sdns_enable="1" 		#启用
 nvram set sdns_name="PDCN"		#服务器名称
 nvram set sdns_port="6053" 		#本地端口
-nvram set sdns_tcp_server="1"  	#TCP服务器
-nvram set sdns_ipv6_server="1" 	#IPV6服务器
-nvram set sdns_ip_change="1"	#双栈ip优选
+nvram set sdns_tcp_server="1"  		#TCP服务器
+nvram set sdns_ipv6_server="1" 		#IPV6服务器
+nvram set sdns_ip_change="1"		#双栈ip优选
 nvram set sdns_www="1" 			#域名预加载
 nvram set sdns_redirect="1"		#重定向53端口 "1"为上游服务器 "2"重定向到53端口
 nvram set sdns_cache="128"		#缓存大小
 nvram set sdns_ttl="300" 		#域名TTL
 nvram set sdns_ttl_min="60"		#域名TTL最小值
-nvram set sdns_ttl_max="86400"	#域名TTL最大值
-##第二DNS服务器
+nvram set sdns_ttl_max="86400"		#域名TTL最大值
+#################################################################
+####################第二DNS服务器################################
 nvram set sdnse_enable="0"		#启用
-nvram set sdnse_port="7053" 	#本地端口
+nvram set sdnse_port="7053" 		#本地端口
 nvram set sdnse_tcp="0" 		#TCP服务器
 nvram set sdnse_speed="0"		#跳过测速
 nvram set sdnse_name= 			#服务器组
-nvram set sdnse_address="0" 	#跳过address规则
+nvram set sdnse_address="0" 		#跳过address规则
 nvram set sdnse_ns="0" 			#跳过Nameserver规则
 nvram set sdnse_ipset="0" 		#跳过ipset规则
 nvram set sdnse_as="0" 			#跳过address SOA(#)规则
-nvram set sdnse_no_d_ip_s="0"	#跳过双栈优选
+nvram set sdnse_no_d_ip_s="0"		#跳过双栈优选
 nvram set sdnse_cache="0" 		#跳过cache
-##自定义设置
+################################################################
+########################自定义设置##############################
 cat > $SMARTDNS_CONF_DIR/smartdns_custom.conf << EOC
 # Add custom settings here.
 
@@ -50,8 +52,8 @@ cat > $SMARTDNS_CONF_DIR/smartdns_custom.conf << EOC
 # bogus-nxdomain [ip/subnet]
 EOC
 nvram set sdns_coredump="0" 		#生成coredump
-
-##上游服务器
+##############################################################
+#######################上游服务器#############################
 upStream_server(){
 	nvram set sdnss_enable_x$1="$2"
 	nvram set sdnss_name_x$1="$3"
@@ -72,7 +74,8 @@ upStream_server "7" "1" "ipv6DNS" "240C::6666" 		"default" "udp"	"" "0"
 upStream_server "8" "1" "OpenDNS" "208.67.222.222" 	"default" "tcp"	"" "0"
 upStream_server "9" "1" "OpenDNS" "208.67.222.222" 	"default" "udp"	"" "0"
 nvram set sdnss_staticnum_x="10" ##有几个上游服务器
-##域名地址
+############################################################
+#######################域名地址##############################
 cat > $SMARTDNS_CONF_DIR/smartdns_address.conf << EOT
 # 指定特定的域名地址
 # Add domains which you want to force to an IP address here.
@@ -92,13 +95,15 @@ cat > $SMARTDNS_CONF_DIR/smartdns_address.conf << EOT
 # nameserver /www.example.com/office, Set the domain name to use the appropriate server group.
 # nameserver /www.example.com/-, ignore this domain
 EOT
-##IP黑名单
+###########################################################
+###################IP黑名单################################
 cat > $SMARTDNS_CONF_DIR/smartdns_blacklist-ip.conf << EOB
 # Add IP blacklist which you want to filtering from some DNS server here.
 # The example below filtering ip from the result of DNS server which is configured with -blacklist-ip.
 # blacklist-ip [ip/subnet]
 # blacklist-ip 254.0.0.1/16
 EOB
+###########################################################
 nvram commit
 
 sdns_enable=`nvram get sdns_enable`
@@ -127,7 +132,7 @@ sdnse_ipc=`nvram get sdnse_ipc`
 sdnse_cache=`nvram get sdnse_cache`
 ss_white=`nvram get ss_white`
 ss_black=`nvram get ss_black`
-
+################################脚本开始#################################
 check_ss(){
 if [ $(nvram get ss_enable) = 1 ] && [ $(nvram get ss_run_mode) = "router" ] && [ $(nvram get pdnsd_enable) = 0 ]; then
 	logger -t "SmartDNS" "系统检测到SS模式为绕过大陆模式，并且启用了pdnsd,请先调整SS解析使用自定义模式！程序将退出。"
@@ -270,8 +275,8 @@ gensdnssecond
 				# ipc="-blacklist-ip"
 			# fi
 			[ $sdnss_ipc = 1 ] && ipc="-blacklist-ip"
-			ip6=`ping6 $sdnss_ip 2>/dev/null`
-			[ -n "$ip6" ] && sdnssip="[$sdnss_ip]"
+			ip4=`echo $sdnss_ip | awk -F ":" '{print $1}'`
+			[ "$ip4" != "$sdnss_ip" ] && sdnssip="[$sdnss_ip]"
 			if [ $sdnss_type = "tcp" ]; then
 				if [ $sdnss_port = "default" ]; then
 					conf_append "server-tcp $sdnss_ip" "$ipc"
@@ -298,13 +303,19 @@ gensdnssecond
 	if [ "$ss_white" = "1" ]; then
 		rm -f /tmp/whitelist.conf
 		logger -t "SmartDNS" "开始处理白名单IP"
-		awk '{printf("whitelist-ip %s\n", $1, $1 )}' /etc/storage/chinadns/chnroute.txt >> /tmp/whitelist.conf
+		listFile="/etc/storage/chinadns/chnroute.txt"
+		[ ! -s $listFile ] && listFile="/opt/app/ss_tproxy/rule/chnroute.txt"
+		[ ! -s $listFile ] && logger -t "SmartDNS" "chnroute.txt文件不存在，如果知道位置请自行修改脚本文件" && return
+		awk '{printf("whitelist-ip %s\n", $1, $1 )}' $listFile >> /tmp/whitelist.conf
 		conf_append "conf-file /tmp/whitelist.conf"
 	fi
 	if [ "$ss_black" = "1" ]; then
 		rm -f /tmp/blacklist.conf
 		logger -t "SmartDNS" "开始处理黑名单IP"
-		awk '{printf("blacklist-ip %s\n", $1, $1 )}' /etc/storage/chinadns/chnroute.txt >> /tmp/blacklist.conf
+		listFile="/etc/storage/chinadns/chnroute.txt"
+		[ ! -s $listFile ] && listFile="/opt/app/ss_tproxy/rule/chnroute.txt"
+		[ ! -s $listFile ] && logger -t "SmartDNS" "chnroute.txt文件不存在，如果知道位置请自行修改脚本文件" && return
+		awk '{printf("blacklist-ip %s\n", $1, $1 )}' $listFile >> /tmp/blacklist.conf
 		conf_append "conf-file /tmp/blacklist.conf"
 	fi
 }
