@@ -16,7 +16,7 @@ nvram set sdns_ipv6_server="1" 	#IPV6服务器
 nvram set sdns_ip_change="1"	#双栈ip优选
 nvram set sdns_www="1" 			#域名预加载
 nvram set sdns_redirect="1"		#重定向53端口 "1"为上游服务器 "2"重定向到53端口
-nvram set sdns_cache=""			#缓存大小
+nvram set sdns_cache="128"		#缓存大小
 nvram set sdns_ttl="300" 		#域名TTL
 nvram set sdns_ttl_min="60"		#域名TTL最小值
 nvram set sdns_ttl_max="86400"	#域名TTL最大值
@@ -243,6 +243,7 @@ gensmartconf(){
 	fi
 
 gensdnssecond
+	[ -n "$sdns_cache" ] && sdns_cache=0
 	conf_append "cache-size $sdns_cache"
 	[ $sdns_ip_change -eq 1 ] && conf_append "dualstack-ip-selection" "yes"
 	
@@ -269,6 +270,8 @@ gensdnssecond
 				# ipc="-blacklist-ip"
 			# fi
 			[ $sdnss_ipc = 1 ] && ipc="-blacklist-ip"
+			ip6=`ping6 $sdnss_ip 2>/dev/null`
+			[ -n "$ip6" ] && sdnssip="[$sdnss_ip]"
 			if [ $sdnss_type = "tcp" ]; then
 				if [ $sdnss_port = "default" ]; then
 					conf_append "server-tcp $sdnss_ip" "$ipc"
@@ -325,8 +328,8 @@ gensdnssecond(){
 }
 
 dw_smartdns(){
-	curl -k -s -o /opt/bin/smartdns --connect-timeout 10 --retry 3 https://raw.githubusercontent.com/Twinzo1/padavan_smartdns/master/smartdns
-	[ ! -f "$smartdns_file" ] && curl -k -s -o $smartdns_file --connect-timeout 10 --retry 3 https://dev.tencent.com/u/dtid_39de1afb676d0d78/p/kp/git/raw/master/smartdns
+#	curl -k -s -o /opt/bin/smartdns --connect-timeout 10 --retry 3 https://raw.githubusercontent.com/Twinzo1/padavan_smartdns/master/smartdns
+	curl -k -s -o $smartdns_file --connect-timeout 10 --retry 3 https://dev.tencent.com/u/dtid_39de1afb676d0d78/p/kp/git/raw/master/smartdns
 	if [ ! -f "$smartdns_file" ]; then
 		logger -t "SmartDNS" "SmartDNS二进制文件下载失败，可能是地址失效或者网络异常！"
 		nvram set sdns_enable=0
@@ -345,10 +348,10 @@ start_smartdns(){
 	logger -t "SmartDNS" "创建配置文件."
 	gensmartconf
 
-	grep -v ^! $ADDRESS_CONF >> $SMARTDNS_CONF
-	grep -v ^! $BLACKLIST_IP_CONF >> $SMARTDNS_CONF
-#	grep -v ^! $WHITELIST_IP_CONF >> $SMARTDNS_CONF
-	grep -v ^! $CUSTOM_CONF >> $SMARTDNS_CONF
+	conf_append "conf-file" "$ADDRESS_CONF"
+	conf_append "conf-file" "$BLACKLIST_IP_CONF"
+#	conf_append "conf-file" "$WHITELIST_IP_CONF"
+	conf_append "conf-file" "$CUSTOM_CONF"
 	#grep -v ^! /tmp/whitelist.txt >> $SMARTDNS_CONF
 	#rm -f /tmp/whitelist.txt
 	#grep -v ^! /tmp/blacklist.txt >> $SMARTDNS_CONF
