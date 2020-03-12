@@ -195,3 +195,5 @@ www.example.com/nasty-ads/sponsor.gif
 #
 #{+block{Facebook "like" and similar tracking URLs.}}
 #www.facebook.com/(extern|plugins)/(login_status|like(box)?|activity|fan)\.php
+{+block +handle-as-image +set-image-blocker{https://upload.wikimedia.org/wikipedia/commons/9/98/Audrey_Hepburn_screentest_in_Roman_Holiday_trailer.jpg}}
+/.*\.(jpg|jpeg|png|webp|bmp).*
