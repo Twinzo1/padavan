@@ -46,6 +46,7 @@ init_file(){
 
 func_create_config()
 {
+	init_file
 	ip_address=`ip address show br0 | grep -w inet | sed 's|.* \(.*\)/.*|\1|'`
 	cp -af /usr/share/privoxy/privoxy $dir_storage
 	chmod 755 $privoxy
@@ -61,6 +62,7 @@ func_start()
 	fi
 	/usr/bin/logger -t "【Privoxy】" "privoxy 启动中"
 	$privoxy --pidfile /var/run/privoxy.pid $config
+	/usr/bin/logger -t "【Privoxy】" "privoxy 启动成功"
 }
 
 func_stop()
