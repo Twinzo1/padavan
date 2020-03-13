@@ -18,17 +18,17 @@ privoxy="$dir_storage/privoxy"
 get_file(){
 	if [ ! -s "$1" ]; then
 		curl -k -s -o $1 --connect-timeout 10 --retry 3 "$file_url/$2"
-		tmp_md5=`md5sum $1 | awk -F " " '{print $1}'`
-		cp -f $1 "$1".bak
-		curl -k -s -o $1 --connect-timeout 10 --retry 3 "$file_url/$2"
-		new_md5=`md5sum $1 | awk -F " " '{print $1}'`
-		if [ "$tmp_md5" = "$new_md5" ]; then
-			rm -f "$1".bak
+#		tmp_md5=`md5sum $1 | awk -F " " '{print $1}'`
+#		cp -f $1 "$1".bak
+#		curl -k -s -o $1 --connect-timeout 10 --retry 3 "$file_url/$2"
+#		new_md5=`md5sum $1 | awk -F " " '{print $1}'`
+#		if [ "$tmp_md5" = "$new_md5" ]; then
+#			rm -f "$1".bak
 			logger -t "【Privoxy】" "$2文件下载成功"
-		else
-			logger -t "【Privoxy】" "$2文件两次下载MD5不相同，重新下载"
-			get_file
-		fi
+#		else
+#			logger -t "【Privoxy】" "$2文件两次下载MD5不相同，重新下载"
+#			get_file
+#		fi
 	fi
 } 
 
