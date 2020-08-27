@@ -1,6 +1,7 @@
 ### padavan_smartdns
 script smartdns for hiboy padavan
 不能与与v2ray同用
+
 在自定义脚本防火墙前添加:
 
 ```logger -t "SmartDNS" "正在下载smartdns脚本"```
