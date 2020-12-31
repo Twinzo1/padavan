@@ -13,7 +13,7 @@ alias CPUUSAGE="cat /proc/stat|grep '^cpu '|awk '{print \$2+\$3+\$4+\$5+\$6+\$7+
 GW4_WAN=`curl -s localhost/device-map/internet.asp | grep "function wanlink_gw4_wan" | awk -F '[{;]' '{print $2}' | awk '{print $2}' | awk -F "'" '{print \$2}'`
 alias WANLINK_UPTIME="curl -s localhost/device-map/internet.asp | grep \"function wanlink_uptime\" | awk -F '[{;]' '{print \$2}' | awk '{print \$2}'"
 
-nvram_get_config() {
+nvram_get() {
 	local ret=$(nvram get $1 2>/dev/null)
 	echo ${ret:=$2}
 }
@@ -21,53 +21,54 @@ nvram_get_config() {
 serverchan_init(){
 ############################# 变量填写 #############################################
 	# 路由器状态推送控制
-	ROUTER_STATUS="1"
+	ROUTER_STATUS=`nvram_get sc_router_status 1`
 	# ipv6 变动通知
-	SERVERCHAN_IPV6="1"
+	SERVERCHAN_IPV6=`nvram_get sc_sc_ipv6 0`
 	# ipv4 变动通知
-	SERVERCHAN_IPV4="1"
+	SERVERCHAN_IPV4=`nvram_get sc_sc_ipv4 1`
 	# 本设备名称
-	device_name="小米"
+	device_name=`nvram_get sc_device_name "PADAVAN"`
 	# 设备上线检测超时
-	UP_TIMEOUT="1"
+	UP_TIMEOUT=`nvram_get sc_up_timeout 2`
 	# 设备离线检测超时
-	DOWN_TIMEOUT="1"
+	DOWN_TIMEOUT=`nvram_get sc_down_timeout 20`
 	# 离线检测次数
-	TIMEOUT_RETRY_COUNT="1"
+	TIMEOUT_RETRY_COUNT=`nvram_get sc_time_r_c 2`
 	# 检测时间间隔
-	sleeptime="60"
+	sleeptime=`nvram_get sc_sleeptime 60`
 	# CPU 负载报警
-	cpuload_enable="1"
+	cpuload_enable=`nvram_get sc_cpuload_enable 1`
 ####-------------------- 钉钉推送信息，需要填写关键词 -----------------------------
-	SEND_DD=`nvram get sc_send_dd`
-	DD_BOT_KEYWORD=`nvram get sc_dd_bot_keyword`
-	DD_BOT_TOKEN=`nvram get sc_dd_bot_token`
+	SEND_DD=`nvram_get sc_send_dd 0`
+	DD_BOT_KEYWORD=`nvram_get sc_dd_bot_keyword`
+	DD_BOT_TOKEN=`nvram_get sc_dd_bot_token`
 ####-------------------------------------------------------------------------------
 ####-------------------------- Telegram推送信息 -----------------------------------
-	SEND_TG=`nvram get sc_send_tg`
-	TG_BOT_TOKEN=`nvram get sc_tg_token`
-	TG_USER_ID=`nvram get sc_tg_user_id`
+	SEND_TG=`nvram_get sc_send_tg 0`
+	TG_BOT_TOKEN=`nvram_get sc_tg_token`
+	TG_USER_ID=`nvram_get sc_tg_user_id`
 	TG_API="https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage"
 ####-------------------------------------------------------------------------------
 ####--------------------- 微信（方糖）推送信息 ------------------------------------
-	SEND_SC=`nvram get sc_send_sc`
-	SCKEY=`nvram get sc_sckey`
+	SEND_SC=`nvram_get sc_send_sc 0`
+	SCKEY=`nvram_get sc_sckey`
 ####-------------------------------------------------------------------------------
 	# 推送标题，不要有空格
-	SEND_TITLE="主路由"
+	SEND_TITLE=`nvram_get sc_send_title 主路由`
 	# 内容页标题，不要有空格
-	CONTENT_TITLE="主路由"
-	ROUTER_WAN="1"
+	CONTENT_TITLE=`nvram_get sc_content_title "主路由"`
+	# WAN信息
+	ROUTER_WAN=`nvram_get sc_router_wan 1`
 	# 客户端列表
-	CLIENT_LIST="1"
+	CLIENT_LIST=`nvram_get sc_client_list 1`
 	# 设备上线通知
-	serverchan_up="1"
+	serverchan_up=`nvram_get sc_sc_up 0`
 	# 设备离线通知
-	serverchan_down="0"
+	serverchan_down=`nvram_get sc_sc_down 0`
 	# 工作目录
-	WORKDIR="/tmp/serverchan/"
+	WORKDIR=`nvram_get sc_workdir "/tmp/serverchan/"`
 ####----------------------------MAC设备信息数据库----------------------------------
-	oui_data="2"
+	oui_data=`nvram_get sc_oui_data 0`
 #  下载目录
 	oui_base="${WORKDIR}oui_base.txt"
 #	关闭：0或为空
