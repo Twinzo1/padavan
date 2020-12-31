@@ -13,6 +13,11 @@ alias CPUUSAGE="cat /proc/stat|grep '^cpu '|awk '{print \$2+\$3+\$4+\$5+\$6+\$7+
 GW4_WAN=`curl -s localhost/device-map/internet.asp | grep "function wanlink_gw4_wan" | awk -F '[{;]' '{print $2}' | awk '{print $2}' | awk -F "'" '{print \$2}'`
 alias WANLINK_UPTIME="curl -s localhost/device-map/internet.asp | grep \"function wanlink_uptime\" | awk -F '[{;]' '{print \$2}' | awk '{print \$2}'"
 
+nvram_get_config() {
+	local ret=$(nvram get $1 2>/dev/null)
+	echo ${ret:=$2}
+}
+
 serverchan_init(){
 ############################# 变量填写 #############################################
 	# 路由器状态推送控制
@@ -34,19 +39,19 @@ serverchan_init(){
 	# CPU 负载报警
 	cpuload_enable="1"
 ####-------------------- 钉钉推送信息，需要填写关键词 -----------------------------
-	SEND_DD="1"
-	DD_BOT_KEYWORD=""
-	DD_BOT_TOKEN=""
+	SEND_DD=`nvram get sc_send_dd`
+	DD_BOT_KEYWORD=`nvram get sc_dd_bot_keyword`
+	DD_BOT_TOKEN=`nvram get sc_dd_bot_token`
 ####-------------------------------------------------------------------------------
 ####-------------------------- Telegram推送信息 -----------------------------------
-	SEND_TG="0"
-	TG_BOT_TOKEN=""
-	TG_USER_ID=""
+	SEND_TG=`nvram get sc_send_tg`
+	TG_BOT_TOKEN=`nvram get sc_tg_token`
+	TG_USER_ID=`nvram get sc_tg_user_id`
 	TG_API="https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage"
 ####-------------------------------------------------------------------------------
 ####--------------------- 微信（方糖）推送信息 ------------------------------------
-	SEND_SC="1"
-	SCKEY=""
+	SEND_SC=`nvram get sc_send_sc`
+	SCKEY=`nvram get sc_sckey`
 ####-------------------------------------------------------------------------------
 	# 推送标题，不要有空格
 	SEND_TITLE="主路由"
@@ -58,7 +63,7 @@ serverchan_init(){
 	# 设备上线通知
 	serverchan_up="1"
 	# 设备离线通知
-	serverchan_down="1"
+	serverchan_down="0"
 	# 工作目录
 	WORKDIR="/tmp/serverchan/"
 ####----------------------------MAC设备信息数据库----------------------------------
