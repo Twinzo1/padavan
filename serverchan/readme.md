@@ -18,11 +18,11 @@ nvram set sc_sckey=""
 nvram set serverchan_enable="1"
 nvram set sc_oui_data="1"
 nvram commit
-chmod 755 /opt/bin/serverchan.sh && /opt/bin/serverchan.sh start
+chmod 755 /opt/bin/serverchan.sh && /opt/bin/serverchan.sh start &
 ```
 ### 简单说明
 * 定时推送，每天 22:10 进行推送 ```10 22 * * * /opt/bin/serverchan.sh send```
-* 后台监控 ```/opt/bin/serverchan.sh start```
+* 后台监控 ```/opt/bin/serverchan.sh start &```
 * 停止 ```nvram set serverchan_enable="0" && nvram commit ```或``` /opt/bin/serverchan.sh stop ```
 ### 配置
 * 请看脚本内部
