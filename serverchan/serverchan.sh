@@ -32,9 +32,19 @@ serverchan_init(){
 	# CPU 负载报警
 	cpuload_enable="1"
 	# 钉钉推送信息
-	KEYWORD=""
-	WEBHOOK_TOKEN=""
-	####WEBHOOK_SERRET=""
+	SEND_DD="1"
+	APPTYPE="钉钉"
+	DD_BOT_KEYWORD=""
+	DD_BOT_TOKEN=""
+	# TG推送信息
+	SEND_TG="1"
+	TG_BOT_TOKEN=""
+	TG_USER_ID=""
+	TG_API="https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage"
+	# 方糖推送信息
+	SEND_SC="1"
+	SCKEY=""
+	
 	SEND_TITLE="主路由"
 	CONTENT_TITLE="主路由"
 	ROUTER_WAN="1"
@@ -188,11 +198,15 @@ send(){
 	[ ! -z "$device_name" ] && local SEND_TITLE="【$device_name】${SEND_TITLE}" && CONTENT_TITLE="【$device_name】${CONTENT_TITLE}"
 	local SEND_TITLE=`echo "$SEND_TITLE"|sed $'s/\ / /g'|sed $'s/\"/%22/g'|sed $'s/\#/%23/g'|sed $'s/\&/%26/g'|sed $'s/\,/%2C/g'|sed $'s/\//%2F/g'|sed $'s/\:/%3A/g'|sed $'s/\;/%3B/g'|sed $'s/\=/%3D/g'|sed $'s/\@/%40/g'`
 	[ -z "$send_content" ] && local send_content="${markdown_splitline}#### <font color=#FF6666>我遇到了一个难题</font>${markdown_linefeed}${markdown_tab}定时发送选项错误，你没有选择需要发送的项目，该怎么办呢${markdown_splitline}"
-	local nowtime=`DATE`
-	local send_content="${send_content}${markdown_splitline}【KEYWORD】 ${KEYWORD}${markdown_linefeed}${markdown_tab}【发送时间】 ${nowtime}"
-	serverchand_send="curl -k -s \"https://oapi.dingtalk.com/robot/send?access_token=${WEBHOOK_TOKEN}\" -H 'Content-Type: application/json' -d '{\"msgtype\": \"markdown\",\"markdown\": {\"title\":\"${SEND_TITLE}\",\"text\":\"${CONTENT_TITLE}${markdown_linefeed}${send_content}\"}}'"
-	[ "$send_disturb" -eq "0" ] && [ -z "$send_tg" ] && eval $serverchand_send
-	[ "$send_disturb" -eq "0" ] && [ ! -z "$send_tg" ] && [ "$send_tg" -eq "1" ] && curl -d "text=${SEND_TITLE}${markdown_linefeed}${nowtime}${markdown_linefeed}${send_content}" -X POST "${tgtoken}" >/dev/null 2>&1
+	local dd_send_content="${send_content}${markdown_splitline}【KEYWORD】 ${DD_BOT_KEYWORD}${markdown_linefeed}${markdown_tab}【发送时间】 $(DATE)"
+	local dd_send="curl -k -s \"https://oapi.dingtalk.com/robot/send?access_token=${DD_BOT_TOKEN}\" -H 'Content-Type: application/json' -d '{\"msgtype\": \"markdown\",\"markdown\": {\"title\":\"${SEND_TITLE}\",\"text\":\"${CONTENT_TITLE}${markdown_linefeed}${dd_send_content}\"}}'"
+	local tg_send="curl -s -d \"text=${SEND_TITLE}${markdown_linefeed}$(DATE)${markdown_linefeed}${send_content}\" -X POST \"${TG_API}\" -d chat_id=\"${TG_USER_IDID}\""
+	local sc_send="curl -k -s \"https://sc.ftqq.com/${SCKEY}.send?text=${SEND_TITLE}\" -d \"desp=$(DATE)${markdown_linefeed}${send_content}${markdown_linefeed}\\\`\\\`\\\`\""
+	local sc_send=`echo "${sc_send}" | sed 's/\*\*\\\n\\\n/\*\*%0D%0A\\\\\`\\\\\`\\\\\`%0D%0A/g; s/\\\n\\\n---/%0D%0A\\\\\`\\\\\`\\\\\`%0D%0A---/g; s/%0D%0A\\\\\`\\\\\`\\\\\`%0D%0A---/\\\n\\\n---/; s/\\\n\\\n/%0D%0A%0D%0A/g'`
+	echo $sc_send
+#	[ "$send_disturb" -eq "0" ] && [ "$SEND_DD" -eq "1" ] && [ -n $DD_BOT_KEYWORD ] &&[ -n $DD_BOT_TOKEN ] && eval $dd_send
+	[ "$send_disturb" -eq "0" ] && [ "$SEND_TG" -eq "1" ] && [ -n $TG_BOT_TOKEN ] && [ -n $TG_USER_ID ] && echo `eval $tg_send`
+	[ "$send_disturb" -eq "0" ] && [ "$SEND_SC" -eq "1" ] && [ -n $SCKEY ] && echo `eval $sc_send`
 	deltemp
 	logger -t "【${APPTYPE}推送】" "定时推送任务完成"
 }
@@ -567,12 +581,12 @@ while [ "$serverchand_enable" -eq "1" ]; do
 	if [ ! -f "${WORKDIR}send_enable.lock" ] && [ ! -z "$title" ] && [ ! -z "$content" ]; then
 		nowtime=`DATE`
 		[ ! -z "$device_name" ] && title="【$device_name】$title"
-		local content="${content}${markdown_splitline}【KEYWORD】 ${KEYWORD}"
+		local content="${content}${markdown_splitline}【KEYWORD】 ${DD_BOT_KEYWORD}"
 		title=`echo "$title"|sed $'s/\ / /g'|sed $'s/\"/%22/g'|sed $'s/\#/%23/g'|sed $'s/\&/%26/g'|sed $'s/\,/%2C/g'|sed $'s/\//%2F/g'|sed $'s/\:/%3A/g'|sed $'s/\;/%3B/g'|sed $'s/\=/%3D/g'|sed $'s/\@/%40/g'`
-		serverchand_send="curl -k -s \"https://oapi.dingtalk.com/robot/send?access_token=${WEBHOOK_TOKEN}\" -H 'Content-Type: application/json' -d '{\"msgtype\": \"markdown\",\"markdown\": {\"title\":\"${title}\",\"text\":\"#### **<font color=#6A65FF>${title}</font>**${markdown_linefeed}${nowtime}${markdown_linefeed}${content}${markdown_linefeed}**<font color=#6A65FF>${title}</font>**\"}}'"
+		serverchand_send="curl -k -s \"https://oapi.dingtalk.com/robot/send?access_token=${DD_BOT_TOKEN}\" -H 'Content-Type: application/json' -d '{\"msgtype\": \"markdown\",\"markdown\": {\"title\":\"${title}\",\"text\":\"#### **<font color=#6A65FF>${title}</font>**${markdown_linefeed}${nowtime}${markdown_linefeed}${content}${markdown_linefeed}**<font color=#6A65FF>${title}</font>**\"}}'"
 		[ "$disturb" -eq "0" ] && [ -z "$send_tg" ] && echo `eval $serverchand_send`
-		[ "$disturb" -eq "0" ] && [ ! -z "$send_tg" ] && [ "$send_tg" -eq "1" ] && curl -d "text=<font color=#6A65FF>${title}</font>${markdown_linefeed}${nowtime}${markdown_linefeed}${content}" -X POST "${tgtoken}" >/dev/null 2>&1
-		[ "$disturb" -eq "0" ] && [ ! -z "$send_tg" ] && [ "$send_tg" -eq "2" ] && curl -s "http://sctapi.ftqq.com/${sctkey}.send?text=${title}" -d "desp=${nowtime}${markdown_linefeed}${content}" >/dev/null 2>&1
+		[ "$disturb" -eq "0" ] && [ ! -z "$send_tg" ] && [ "$send_tg" -eq "1" ] && curl -d "text=<font color=#6A65FF>${title}</font>${markdown_linefeed}${nowtime}${markdown_linefeed}${content}" -X POST "${TG_API}" -d chat_id="${TG_USER_ID}" >/dev/null 2>&1
+		[ "$disturb" -eq "0" ] && [ ! -z "$send_tg" ] && [ "$send_tg" -eq "2" ] && curl -s "http://sctapi.ftqq.com/${SCKEY}.send?text=${title}" -d "desp=${nowtime}${markdown_linefeed}${content}" >/dev/null 2>&1
 	fi
 	
 	while [ -f "${WORKDIR}send_enable.lock" ]; do
