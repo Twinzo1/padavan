@@ -6,7 +6,16 @@
 ```
 logger -t "【消息推送】" "serverchan脚本"
 curl -k -s -o /opt/bin/smartdns.sh --connect-timeout 10 --retry 3 https://raw.githubusercontent.com/Twinzo1/padavan/master/serverchan/serverchan.sh
-chmod 755 /opt/bin/serverchan.sh && nvram set serverchan_enable="1" && nvram commit && /opt/bin/serverchan.sh start
+# 主要变量设置
+nvram set sc_send_dd="1"
+nvram set sc_dd_bot_keyword=""
+nvram set sc_dd_bot_token=""
+nvram set sc_send_sc="1"
+nvram set sc_sckey=""
+nvram set serverchan_enable="1"
+nvram set sc_oui_data="1"
+nvram commit
+chmod 755 /opt/bin/serverchan.sh && /opt/bin/serverchan.sh start
 ```
 ### 简单说明
 * 定时推送，每天 22:10 进行推送 ```10 22 * * * /opt/bin/serverchan.sh send```
