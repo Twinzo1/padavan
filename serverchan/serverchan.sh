@@ -1,6 +1,6 @@
 #!/bin/sh
 # padavan使用function声明函数会出错
-# 定时任务设定 10 22 * * * /usr/bin/serverchand/serverchand send &
+# 定时任务设定 10 22 * * * /usr/bin/serverchan/serverchan send &
 # 设备别名设置
 device_aliases={\
 '苹果':'b0:70:2d:33:55:66',\
@@ -14,10 +14,12 @@ GW4_WAN=`curl -s localhost/device-map/internet.asp | grep "function wanlink_gw4_
 alias WANLINK_UPTIME="curl -s localhost/device-map/internet.asp | grep \"function wanlink_uptime\" | awk -F '[{;]' '{print \$2}' | awk '{print \$2}'"
 
 serverchan_init(){
-##############变量填写########################
+############################# 变量填写 #############################################
 	# 路由器状态推送控制
 	ROUTER_STATUS="1"
+	# ipv6 变动通知
 	SERVERCHAN_IPV6="1"
+	# ipv4 变动通知
 	SERVERCHAN_IPV4="1"
 	# 本设备名称
 	device_name="小米"
@@ -31,38 +33,63 @@ serverchan_init(){
 	sleeptime="60"
 	# CPU 负载报警
 	cpuload_enable="1"
-	# 钉钉推送信息
+####-------------------- 钉钉推送信息，需要填写关键词 -----------------------------
 	SEND_DD="1"
-	APPTYPE="钉钉"
 	DD_BOT_KEYWORD=""
 	DD_BOT_TOKEN=""
-	# TG推送信息
-	SEND_TG="1"
+####-------------------------------------------------------------------------------
+####-------------------------- Telegram推送信息 -----------------------------------
+	SEND_TG="0"
 	TG_BOT_TOKEN=""
 	TG_USER_ID=""
 	TG_API="https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage"
-	# 方糖推送信息
+####-------------------------------------------------------------------------------
+####--------------------- 微信（方糖）推送信息 ------------------------------------
 	SEND_SC="1"
 	SCKEY=""
-	
+####-------------------------------------------------------------------------------
+	# 推送标题，不要有空格
 	SEND_TITLE="主路由"
+	# 内容页标题，不要有空格
 	CONTENT_TITLE="主路由"
 	ROUTER_WAN="1"
+	# 客户端列表
 	CLIENT_LIST="1"
-	WORKDIR="/tmp/serverchan/"
 	# 设备上线通知
-	serverchand_up="1"
-	# 设备下线通知
-	serverchand_down="1"
+	serverchan_up="1"
+	# 设备离线通知
+	serverchan_down="1"
+	# 工作目录
+	WORKDIR="/tmp/serverchan/"
+####----------------------------MAC设备信息数据库----------------------------------
+	oui_data="2"
+#  下载目录
+	oui_base="${WORKDIR}oui_base.txt"
+#	关闭：0或为空
+#	下载简化版：1
+#	下载完整版：2
+#	网络查询：3
+####-------------------------------------------------------------------------------
+######################################################################################
+	[ $SEND_DD -eq "1" ] && APPTYPE="钉钉"
+	[ $SEND_TG -eq "1" ] && APPTYPE="${APPTYPE}/TG"
+	[ $SEND_SC -eq "1" ] && APPTYPE="${APPTYPE}/server酱"
+	[ -z "APPTYPE" ] && logger -t "【消息推送】" "未选择推送类型，脚本退出" && exit
 	[ ! -d "$WORKDIR" ] && mkdir "$WORKDIR"
-###########################################
 	markdown_splitline="\n\n---\n\n";markdown_linefeed="\n\n";markdown_tab="     ";markdown_space=" "
+	down_oui &
+	echo "`DATE` 【初始化】载入在线设备"
+	> ${WORKDIR}send_enable.lock && serverchan_first; deltemp
+	echo "`DATE` 【初始化】初始化完成"
 }
-alias DATE="date '+%Y-%m-%d %H:%M:%S'"
-alias CPUUSAGE="cat /proc/stat|grep '^cpu '|awk '{print \$2+\$3+\$4+\$5+\$6+\$7+\$8 \" \" \$2+\$3+\$4+\$7+\$8}'"
-GW4_WAN=`curl -s localhost/device-map/internet.asp | grep "function wanlink_gw4_wan" | awk -F '[{;]' '{print $2}' | awk '{print $2}' | awk -F "'" '{print \$2}'`
-alias WANLINK_UPTIME="curl -s localhost/device-map/internet.asp | grep \"function wanlink_uptime\" | awk -F '[{;]' '{print \$2}' | awk '{print \$2}'"
 
+# 同一网段判断
+netsegment(){
+	wan_mod=`nvram get wan_route_x`
+	[ "$wan_mod" = "IP_Bridged" ] && echo "" && return
+	lan_ipaddr=`nvram get lan_ipaddr`
+	lan_netmask=`nvram get lan_netmask`
+}
 # 清理临时文件
 deltemp(){
 	unset title	content
@@ -148,10 +175,10 @@ getping(){
 
 # 发送定时数据
 send(){
-	serverchand_disturb="钉钉推送";local send_disturb=$?
+	local send_disturb=$?
 	router_status=$ROUTER_STATUS
 	[ -z "$SEND_TITLE" ] && local SEND_TITLE="路由状态："
-	[ ! -z "$CLIENT_LIST" ] && [ "$CLIENT_LIST" -eq "1" ] && > ${WORKDIR}send_enable.lock && serverchand_first &
+	[ ! -z "$CLIENT_LIST" ] && [ "$CLIENT_LIST" -eq "1" ] && > ${WORKDIR}send_enable.lock && serverchan_first &
 
 	if [ "$router_status" -eq "1" ]; then
 		local systemload=`cat /proc/loadavg|awk '{print $1" "$2" "$3}'`
@@ -203,8 +230,7 @@ send(){
 	local tg_send="curl -s -d \"text=${SEND_TITLE}${markdown_linefeed}$(DATE)${markdown_linefeed}${send_content}\" -X POST \"${TG_API}\" -d chat_id=\"${TG_USER_IDID}\""
 	local sc_send="curl -k -s \"https://sc.ftqq.com/${SCKEY}.send?text=${SEND_TITLE}\" -d \"desp=$(DATE)${markdown_linefeed}${send_content}${markdown_linefeed}\\\`\\\`\\\`\""
 	local sc_send=`echo "${sc_send}" | sed 's/\*\*\\\n\\\n/\*\*%0D%0A\\\\\`\\\\\`\\\\\`%0D%0A/g; s/\\\n\\\n---/%0D%0A\\\\\`\\\\\`\\\\\`%0D%0A---/g; s/%0D%0A\\\\\`\\\\\`\\\\\`%0D%0A---/\\\n\\\n---/; s/\\\n\\\n/%0D%0A%0D%0A/g'`
-	echo $sc_send
-#	[ "$send_disturb" -eq "0" ] && [ "$SEND_DD" -eq "1" ] && [ -n $DD_BOT_KEYWORD ] &&[ -n $DD_BOT_TOKEN ] && eval $dd_send
+	[ "$send_disturb" -eq "0" ] && [ "$SEND_DD" -eq "1" ] && [ -n $DD_BOT_KEYWORD ] &&[ -n $DD_BOT_TOKEN ] && echo `eval $dd_send`
 	[ "$send_disturb" -eq "0" ] && [ "$SEND_TG" -eq "1" ] && [ -n $TG_BOT_TOKEN ] && [ -n $TG_USER_ID ] && echo `eval $tg_send`
 	[ "$send_disturb" -eq "0" ] && [ "$SEND_SC" -eq "1" ] && [ -n $SCKEY ] && echo `eval $sc_send`
 	deltemp
@@ -232,7 +258,7 @@ getname(){
 
 	( ! echo "$tmp_name"|grep -q -w "unknown\|*" ) && [ ! -z "$tmp_name" ] && echo "$tmp_name" && return || unset tmp_name # 为unknown时重新读取
 	[ -f "$oui_base" ] && local tmp_name=$(cat $oui_base|grep -i $(echo "$2"|cut -c 1,2,4,5,7,8)|sed -nr 's#^.*16)..(.*)#\1#gp'|sed 's/ /_/g')
-	[ "$oui_data" -eq "4" ] && local tmp_name=$(curl -sS "http://standards-oui.ieee.org/oui.txt"|grep -i $(echo "$2"|cut -c 1,2,4,5,7,8)|sed -nr 's#^.*16)..(.*)#\1#gp'|sed 's/ /_/g')
+	[ "$oui_data" -eq "3" ] && local tmp_name=$(curl -sS "http://standards-oui.ieee.org/oui.txt"|grep -i $(echo "$2"|cut -c 1,2,4,5,7,8)|sed -nr 's#^.*16)..(.*)#\1#gp'|sed 's/ /_/g')
 	[ -z "$tmp_name" ] && local tmp_name="unknown"
 	echo "$tmp_name"
 }
@@ -316,7 +342,7 @@ cut_str() {
 }
 
 # 在线设备列表
-serverchand_first(){
+serverchan_first(){
 	[ -f "${WORKDIR}ipAddress" ] && local IPLIST=`cat ${WORKDIR}ipAddress|awk '{print $1}'|grep -oE "([0-9]{1,3}\.){3}[0-9]{1,3}"|grep -Ev "^$|${GW4_WAN}"|sort -u`
 	echo $IPLIST
 	for ip in $IPLIST; do
@@ -327,7 +353,7 @@ serverchand_first(){
 	done
 	wait
 	unset ip IPLIST
-	local IPLIST=`cat /proc/net/arp|grep "0x2\|0x6"|awk '{print $1}'|grep -v "^169.254."|grep -v "^$"|sort -u`
+	local IPLIST=`cat /proc/net/arp|grep "0x2\|0x6"|awk '{print $1}'|grep -v "^169.254."|grep -Ev "^$|${GW4_WAN}"|sort -u`
 	for ip in $IPLIST; do
 		read -u 5
 		{
@@ -354,19 +380,19 @@ getinterface(){
 # 文件锁
 LockFile(){
 	if [ $1 = "lock" ] ;then
-		[ ! -f "${WORKDIR}serverchand.lock" ] && > ${WORKDIR}serverchand.lock && return
+		[ ! -f "${WORKDIR}serverchan.lock" ] && > ${WORKDIR}serverchan.lock && return
 		LockFile lock
 	fi
-	[ $1 = "unlock" ] && rm -f ${WORKDIR}serverchand.lock >/dev/null 2>&1
+	[ $1 = "unlock" ] && rm -f ${WORKDIR}serverchan.lock >/dev/null 2>&1
 }
 
 # 检测黑白名单
 blackwhitelist(){
 	[ ! "$1" ] && return 1
-	[ -z "$serverchand_whitelist" ] && [ -z "$serverchand_blacklist" ] && [ -z "$serverchand_interface" ] && return
-	[ ! -z "$serverchand_whitelist" ] && ( ! echo "$serverchand_whitelist"|grep -q -i -w $1) && return
-	[ ! -z "$serverchand_blacklist" ] && ( echo "$serverchand_blacklist"|grep -q -i -w $1) && return
-	[ ! -z "$serverchand_interface" ] && ( echo `getinterface ${1}`|grep -q -i -w $serverchand_interface ) && return
+	[ -z "$serverchan_whitelist" ] && [ -z "$serverchan_blacklist" ] && [ -z "$serverchan_interface" ] && return
+	[ ! -z "$serverchan_whitelist" ] && ( ! echo "$serverchan_whitelist"|grep -q -i -w $1) && return
+	[ ! -z "$serverchan_blacklist" ] && ( echo "$serverchan_blacklist"|grep -q -i -w $1) && return
+	[ ! -z "$serverchan_interface" ] && ( echo `getinterface ${1}`|grep -q -i -w $serverchan_interface ) && return
 }
 
 # 检测设备上线
@@ -385,21 +411,21 @@ up(){
 			local ip_name=`getname ${1} ${ip_mac}`
 			blackwhitelist ${ip_mac};local ip_blackwhite=$?
 			echo "$1 ${ip_mac} ${ip_name} `date +%s` ${ip_interface}" >> ${WORKDIR}ipAddress
-			[ -f "${WORKDIR}send_enable.lock" ] || [ -z "$serverchand_up" ] || [ "$serverchand_up" -ne "1" ] || [ -z "$ip_blackwhite" ] || [ "$ip_blackwhite" -ne 0 ] && LockFile unlock && return
+			[ -f "${WORKDIR}send_enable.lock" ] || [ -z "$serverchan_up" ] || [ "$serverchan_up" -ne "1" ] || [ -z "$ip_blackwhite" ] || [ "$ip_blackwhite" -ne 0 ] && LockFile unlock && return
 			[ -f "${WORKDIR}title" ] && local title=`cat ${WORKDIR}title`
 			[ -f "${WORKDIR}content" ] && local content=`cat ${WORKDIR}content`	
 			if [ -z "$title" ]; then
-				local title="$ip_name 连接了你的路由器"
-				local content="${markdown_splitline}#### <font color=#92D050>新设备连接</font>${markdown_linefeed}${markdown_tab}客户端名：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_name}${markdown_linefeed}${markdown_tab}客户端IP： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${1}${markdown_linefeed}${markdown_tab}客户端MAC：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_mac}${markdown_linefeed}${markdown_tab}网络接口：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_interface}"
-			elif ( echo ${title}|grep -q "连接了你的路由器" ); then
-				local title="${ip_name} ${title}"
+				local title="新设备上线"
+				local content="${markdown_linefeed}${ip_name} 连接了你的路由器${markdown_splitline}#### **<font color=#92D050>新设备连接</font>**${markdown_linefeed}${markdown_tab}客户端名：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_name}${markdown_linefeed}${markdown_tab}客户端IP： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${1}${markdown_linefeed}${markdown_tab}客户端MAC：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_mac}${markdown_linefeed}${markdown_tab}网络接口：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_interface}"
+			elif ( echo ${title}|grep -q "新设备上线" ); then
+				local title="新设备上线"
 				local content="${markdown_splitline}${markdown_tab}客户端名：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_name}${markdown_linefeed}${markdown_tab}客户端IP： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${1}${markdown_linefeed}${markdown_tab}客户端MAC：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_mac}${markdown_linefeed}${markdown_tab}网络接口：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_interface}"
 			else
 				local title="设备状态变化"
-				local content="${markdown_splitline}#### <font color=#92D050>新设备连接</font>${markdown_linefeed}${markdown_tab}客户端名：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_name}${markdown_linefeed}${markdown_tab}客户端IP： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${1}${markdown_linefeed}${markdown_tab}客户端MAC：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_mac}${markdown_linefeed}${markdown_tab}网络接口：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_interface}"
+				local content="${markdown_linefeed}${ip_name} 连接了你的路由器${markdown_splitline}#### **<font color=#92D050>新设备连接</font>**${markdown_linefeed}${markdown_tab}客户端名：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_name}${markdown_linefeed}${markdown_tab}客户端IP： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${1}${markdown_linefeed}${markdown_tab}客户端MAC：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_mac}${markdown_linefeed}${markdown_tab}网络接口：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_interface}"
 			fi				
 			logger -t "【${APPTYPE}推送】" "新设备 ${ip_name} ${1} 连接了"
-			[ ! -z "$serverchand_blacklist" ] && local title="你偷偷关注的设备上线了"
+			[ ! -z "$serverchan_blacklist" ] && local title="你偷偷关注的设备上线了"
 			[ ! -z "$title" ] && echo "$title" >${WORKDIR}title
 			[ ! -z "$content" ] && echo -n "$content" >>${WORKDIR}content
 		fi
@@ -489,20 +515,20 @@ down_send(){
 		local ip_mac=`getmac ${ip}`
 		disturb_text="wei"
 		blackwhitelist ${ip_mac};local ip_blackwhite=$?
-		[ -z "$serverchand_down" ] || [ "$serverchand_down" -ne "1" ] || [ -z "$ip_blackwhite" ] || [ "$ip_blackwhite" -ne 0 ] && continue
+		[ -z "$serverchan_down" ] || [ "$serverchan_down" -ne "1" ] || [ -z "$ip_blackwhite" ] || [ "$ip_blackwhite" -ne 0 ] && continue
 		local ip_name=`getname ${ip} ${ip_mac}`
 		local time_up=`cat ${WORKDIR}tmp_downlist|grep -w ${ip}|awk '{print $4}'|grep -v "^$"|sort -u`
 		local time1=`date +%s`
 		local time1=$(time_for_humans `expr ${time1} - ${time_up}`)
 		if [ -z "$title" ]; then
-			title="${ip_name} 断开连接"
-			content="${content}${markdown_splitline}#### <font color=#FF6666>设备断开连接</font>${markdown_linefeed}${markdown_tab}客户端名：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_name}${markdown_linefeed}${markdown_tab}客户端IP： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip}${markdown_linefeed}${markdown_tab}客户端MAC：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_mac}$ip_total${markdown_linefeed}${markdown_tab}在线时间： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${time1}"
-		elif ( echo "$title"|grep -q "断开连接" ); then
-			title="${ip_name} ${title}"
+			title="有设备离线"
+			content="${markdown_linefeed}${ip_name} 断开连接${content}${markdown_splitline}#### **<font color=#FF6666>设备断开连接</font>**${markdown_linefeed}${markdown_tab}客户端名：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_name}${markdown_linefeed}${markdown_tab}客户端IP： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip}${markdown_linefeed}${markdown_tab}客户端MAC：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_mac}$ip_total${markdown_linefeed}${markdown_tab}在线时间： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${time1}"
+		elif ( echo "$title"|grep -q "设备离线" ); then
+			title="设备离线"
 			content="${content}${markdown_splitline}${markdown_tab}客户端名：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_name}${markdown_linefeed}${markdown_tab}客户端IP： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip}${markdown_linefeed}${markdown_tab}客户端MAC：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_mac}$ip_total${markdown_linefeed}${markdown_tab}在线时间： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${time1}"
 		else
 			title="设备状态变化"
-			content="${content}${markdown_splitline}#### <font color=#FF6666>设备断开连接</font>${markdown_linefeed}${markdown_tab}客户端名：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_name}${markdown_linefeed}${markdown_tab}客户端IP： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip}${markdown_linefeed}${markdown_tab}客户端MAC：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_mac}$ip_total${markdown_linefeed}${markdown_tab}在线时间： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${time1}"
+			content="${markdown_linefeed}${ip_name} 断开连接${content}${markdown_splitline}#### **<font color=#FF6666>设备断开连接</font>**${markdown_linefeed}${markdown_tab}客户端名：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_name}${markdown_linefeed}${markdown_tab}客户端IP： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip}${markdown_linefeed}${markdown_tab}客户端MAC：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_mac}$ip_total${markdown_linefeed}${markdown_tab}在线时间： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${time1}"
 		fi
 		logger -t "【${APPTYPE}推送】" "设备 ${ip_name} ${ip} 断开连接 "
 	done
@@ -512,7 +538,7 @@ down_send(){
 # 当前设备列表
 current_device(){
 	[ -f ${WORKDIR}ipAddress ] && local logrow=$(grep -c "" ${WORKDIR}ipAddress) || local logrow="0";[ $logrow -eq "0" ] && return
-	content="${content}${markdown_splitline}#### **<font color=#76CCFF>现有在线设备 ${logrow} 台，具体如下</font>**${markdown_linefeed}${markdown_tab}IP 地址<font color=#76CCFF>┋</font>${ip_total_db}<font color=#76CCFF>┋</font>**客户端名**"
+	content="${content}${markdown_splitline}#### **<font color=#76CCFF>现有在线设备 ${logrow} 台，具体如下</font>**${markdown_linefeed}${markdown_tab}IP 地址<font color=#76CCFF>┋</font><font color=#76CCFF>┋</font>**客户端名**"
 	local IPLIST=`cat ${WORKDIR}ipAddress|awk '{print $1}'`
 	for ip in $IPLIST; do
 		local ip_mac=`getmac ${ip}`
@@ -536,61 +562,79 @@ current_device(){
 	done
 }
 
-# 初始化
-serverchan_init
-echo "`DATE` 【初始化】载入在线设备"
-> ${WORKDIR}send_enable.lock && serverchand_first; deltemp
-echo "`DATE` 【初始化】初始化完成"
+loop(){
+	# 循环
+	[ "$(nvram get serverchan_enable)" -eq "1" ] && logger -t "【${APPTYPE}推送】" "启动成功" || logger -t "【${APPTYPE}推送】" "脚本未成功启动，未设置启动参数 serverchan_enable"
+	while [ "$(nvram get serverchan_enable)" -eq "1" ]; do
+		deltemp;local send_disturb=$?
 
-if [ "$1" ] ;then
-	[ $1 == "send" ] && send && echo "发送定时数据"
-	[ $1 == "client" ] && serverchand_first
-	exit
-fi
+		# 外网IP变化检测
+		if [ ! -z "$SERVERCHAN_IPV4" ] && [ ! -z "$SERVERCHAN_IPV6" ] && [ "$SERVERCHAN_IPV4" -ne "0" ] || [ "$SERVERCHAN_IPV6" -ne "0" ]; then
+	#		rand_geturl
+			ip_changes
+		fi
+		
+		# 设备列表
+		if [ ! -f "${WORKDIR}send_enable.lock" ]; then
+			[ ! -z "$title" ] && echo "$title" > ${WORKDIR}title
+			[ ! -z "$content" ] && echo "$content" > ${WORKDIR}content
+			serverchan_first
+			[ -f "${WORKDIR}title" ] && title=`cat ${WORKDIR}title` && rm -f ${WORKDIR}title >/dev/null 2>&1
+			[ -f "${WORKDIR}content" ] && content=`cat ${WORKDIR}content` && rm -f ${WORKDIR}content >/dev/null 2>&1
+		fi
+		
+		# 离线缓存区推送
+		[ ! -f "${WORKDIR}send_enable.lock" ] && down_send
+		
+		# 当前设备列表
+		[ ! -z "$content" ] && [ ! -f "${WORKDIR}send_enable.lock" ] && current_device
 
-serverchand_enable="1"
-# 循环
-while [ "$serverchand_enable" -eq "1" ]; do
-	deltemp;disturb=$?
-
-	# 外网IP变化检测
-	if [ ! -z "$SERVERCHAN_IPV4" ] && [ ! -z "$SERVERCHAN_IPV6" ] && [ "$SERVERCHAN_IPV4" -ne "0" ] || [ "$SERVERCHAN_IPV6" -ne "0" ]; then
-#		rand_geturl
-		ip_changes
-	fi
+		# CPU 检测
+		[ ! -f "${WORKDIR}send_enable.lock" ] && cpu_load
+		if [ ! -f "${WORKDIR}send_enable.lock" ] && [ ! -z "$title" ] && [ ! -z "$content" ]; then
+			[ ! -z "$device_name" ] && title="【${device_name}${CONTENT_TITLE}】$title"
+			title=`echo "$title"|sed $'s/\ / /g'|sed $'s/\"/%22/g'|sed $'s/\#/%23/g'|sed $'s/\&/%26/g'|sed $'s/\,/%2C/g'|sed $'s/\//%2F/g'|sed $'s/\:/%3A/g'|sed $'s/\;/%3B/g'|sed $'s/\=/%3D/g'|sed $'s/\@/%40/g'`
+			local dd_send_content="${content}${markdown_splitline}【KEYWORD】 ${DD_BOT_KEYWORD}${markdown_linefeed}${markdown_tab}【发送时间】 $(DATE)"
+			local dd_send="curl -k -s \"https://oapi.dingtalk.com/robot/send?access_token=${DD_BOT_TOKEN}\" -H 'Content-Type: application/json' -d '{\"msgtype\": \"markdown\",\"markdown\": {\"title\":\"${title}\",\"text\":\"${title}${markdown_linefeed}${dd_send_content}\"}}'"
+			local tg_send="curl -s -d \"text=${title}${markdown_linefeed}$(DATE)${markdown_linefeed}${content}\" -X POST \"${TG_API}\" -d chat_id=\"${TG_USER_IDID}\""
+			local sc_send="curl -k -s \"https://sc.ftqq.com/${SCKEY}.send?text=${title}&#9829\" -d \"desp=$(DATE)${markdown_linefeed}${content}\""
+			local sc_send=`echo "${sc_send}" | sed 's/\*\*\\\n\\\n/\*\*%0D%0A\\\\\`\\\\\`\\\\\`%0D%0A/; s/\*\*\\\n\\\n/\*\*%0D%0A\\\\\`\\\\\`\\\\\`%0D%0A/'`
+			local sc_send=`echo "${sc_send}" | sed 's/\\\n\\\n---/%0D%0A\\\\\`\\\\\`\\\\\`%0D%0A---/g; s/%0D%0A\\\\\`\\\\\`\\\\\`%0D%0A---/\\\n\\\n---/; s/\*\*//g; s/\\\n\\\n/%0D%0A%0D%0A/g'`
+			[ "$send_disturb" -eq "0" ] && [ "$SEND_DD" -eq "1" ] && [ -n $DD_BOT_KEYWORD ] &&[ -n $DD_BOT_TOKEN ] && echo `eval $dd_send`
+			[ "$send_disturb" -eq "0" ] && [ "$SEND_TG" -eq "1" ] && [ -n $TG_BOT_TOKEN ] && [ -n $TG_USER_ID ] && echo `eval $tg_send`
+			[ "$send_disturb" -eq "0" ] && [ "$SEND_SC" -eq "1" ] && [ -n $SCKEY ] && echo `eval $sc_send`
 	
-	# 设备列表
-	if [ ! -f "${WORKDIR}send_enable.lock" ]; then
-		[ ! -z "$title" ] && echo "$title" > ${WORKDIR}title
-		[ ! -z "$content" ] && echo "$content" > ${WORKDIR}content
-		serverchand_first
-		[ -f "${WORKDIR}title" ] && title=`cat ${WORKDIR}title` && rm -f ${WORKDIR}title >/dev/null 2>&1
-		[ -f "${WORKDIR}content" ] && content=`cat ${WORKDIR}content` && rm -f ${WORKDIR}content >/dev/null 2>&1
-	fi
-	
-	# 离线缓存区推送
-	[ ! -f "${WORKDIR}send_enable.lock" ] && down_send
-	
-	# 当前设备列表
-	[ ! -z "$content" ] && [ ! -f "${WORKDIR}send_enable.lock" ] && current_device
-
-	# CPU 检测
-	[ ! -f "${WORKDIR}send_enable.lock" ] && cpu_load
-	echo $title $content
-
-	if [ ! -f "${WORKDIR}send_enable.lock" ] && [ ! -z "$title" ] && [ ! -z "$content" ]; then
-		nowtime=`DATE`
-		[ ! -z "$device_name" ] && title="【$device_name】$title"
-		local content="${content}${markdown_splitline}【KEYWORD】 ${DD_BOT_KEYWORD}"
-		title=`echo "$title"|sed $'s/\ / /g'|sed $'s/\"/%22/g'|sed $'s/\#/%23/g'|sed $'s/\&/%26/g'|sed $'s/\,/%2C/g'|sed $'s/\//%2F/g'|sed $'s/\:/%3A/g'|sed $'s/\;/%3B/g'|sed $'s/\=/%3D/g'|sed $'s/\@/%40/g'`
-		serverchand_send="curl -k -s \"https://oapi.dingtalk.com/robot/send?access_token=${DD_BOT_TOKEN}\" -H 'Content-Type: application/json' -d '{\"msgtype\": \"markdown\",\"markdown\": {\"title\":\"${title}\",\"text\":\"#### **<font color=#6A65FF>${title}</font>**${markdown_linefeed}${nowtime}${markdown_linefeed}${content}${markdown_linefeed}**<font color=#6A65FF>${title}</font>**\"}}'"
-		[ "$disturb" -eq "0" ] && [ -z "$send_tg" ] && echo `eval $serverchand_send`
-		[ "$disturb" -eq "0" ] && [ ! -z "$send_tg" ] && [ "$send_tg" -eq "1" ] && curl -d "text=<font color=#6A65FF>${title}</font>${markdown_linefeed}${nowtime}${markdown_linefeed}${content}" -X POST "${TG_API}" -d chat_id="${TG_USER_ID}" >/dev/null 2>&1
-		[ "$disturb" -eq "0" ] && [ ! -z "$send_tg" ] && [ "$send_tg" -eq "2" ] && curl -s "http://sctapi.ftqq.com/${SCKEY}.send?text=${title}" -d "desp=${nowtime}${markdown_linefeed}${content}" >/dev/null 2>&1
-	fi
-	
-	while [ -f "${WORKDIR}send_enable.lock" ]; do
+		fi
+		
+		while [ -f "${WORKDIR}send_enable.lock" ]; do
+			sleep $sleeptime
+		done
 		sleep $sleeptime
 	done
-	sleep $sleeptime
-done
+	logger -t "【${APPTYPE}推送】" "退出脚本"
+}
+
+close() {
+	nvram set serverchan_enable="0"
+	nvram commit
+	killall serverchan.sh
+	killall -9 serverchan.sh
+	logger -t "【${APPTYPE}推送】" "停止脚本"
+}
+
+case $1 in
+start)
+	serverchan_init
+	loop
+	;;
+send)
+	serverchan_init
+	send
+	;;
+stop)
+	close
+	;;
+*)
+	logger -t "【信息推送】" "参数错误"
+	;;
+esac
