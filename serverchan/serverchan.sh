@@ -96,6 +96,15 @@ netsegment(){
 	lan_ipaddr=`nvram get lan_ipaddr`
 	lan_netmask=`nvram get lan_netmask`
 }
+
+# 获取静态ip设置的设备名称
+dhcp_staticname(){
+	local tmp_mac=`echo "$1" | sed 's/://g'`
+	local tmp_order=`nvram show | grep "dhcp_staticmac_x" | grep -i "$tmp_mac" | awk -F "[_|=]" '{print $3}'` 
+	[ -n "$tmp_order" ] && local tmp_name=`nvram show | grep "dhcp_staticname_x" | grep "$tmp_order"= | awk -F "=" '{print $2}'`
+	echo $tmp_name
+}
+
 # 清理临时文件
 deltemp(){
 	unset title	content
@@ -115,6 +124,7 @@ getip(){
 		echo "$hostIP"
 	elif [ $1 == "wanipv6" ] ;then
 		local wanIPv6=$(ip addr show|grep -v deprecated|grep -A1 'inet6 [^f:]'|sed -nr ':a;N;s#^ +inet6 ([a-f0-9:]+)/.+? scope global .*? valid_lft ([0-9]+sec) .*#\2 \1#p;ta'|sort -nr|head -n1|awk '{print $2}')
+		[ -z "$wanipv6" ] && local wanIPv6=`curl -s localhost/device-map/internet.asp | grep "function wanlink_ip6_wan" | awk -F '[{;]' '{print $2}'|  awk -F "['/]" '{print $2}'`
 		echo "$wanIPv6"
 	elif [ $1 == "hostipv6" ] ;then
 		local ipv6_URL="v6.ipv6-test.com/api/myip.php"
@@ -206,7 +216,7 @@ send(){
 		local send_content="${send_content}${markdown_linefeed}${markdown_tab}外网ip:${send_hostIP}"
 		if [ ! -z "$SERVERCHAN_IPV6" ] && [ "$SERVERCHAN_IPV6" -ne "0" ]; then
 			local send_wanIPv6=`getip wanipv6`;local send_hostIPv6=`getip hostipv6`
-			local send_content="${send_content}${markdown_linefeed}${markdown_tab}IPV6接口ip :${send_wanIPv6}"
+			local send_content="${send_content}${markdown_linefeed}${markdown_tab}IPV6接口ip:${send_wanIPv6}"
 			local send_content="${send_content}${markdown_linefeed}${markdown_tab}IPV6外网ip:${send_hostIPv6}"
 		fi
 		( ! echo "$send_wanIP"|grep -q -w ${send_hostIP} ) && local send_content="${send_content}${markdown_linefeed}${markdown_tab}外网 ip 与接口 ip 不一致，你的 ipv4地址 不是公网 ip"
@@ -223,7 +233,8 @@ send(){
 			local time1=`date +%s`
 			local time1=$(time_for_humans `expr ${time1} - ${time_up}`)
 			local ip_mac=`getmac ${ip}`
-			local ip_name=$(cut_str `getname ${ip} ${ip_mac}` 18)
+			local ip_name=`getname ${ip} ${ip_mac}`
+#			local ip_name=$(cut_str $ip_name 18)
 			local send_content="${send_content}${markdown_linefeed}${markdown_tab}<font color=#92D050>【${ip_name}】</font>  ${ip}${markdown_linefeed}${markdown_tab}${ip_total}在线 ${time1}"
 			unset time_down time_up time1 ip_mac ip_name
 		done
@@ -256,7 +267,8 @@ getmac(){
 
 # 查询主机名
 getname(){
-	[ -z "$tmp_name" ] && local tmp_name=`echo $device_aliases | awk -F '[{}]' '{print $2}' | awk '{gsub(/\,/,"\n");print $0}' | awk '{sub(/:/,",");print $0}' |grep -i $2|awk -F "," '{print $1}'|grep -v "^$"|sort -u`
+	[ -z "$tmp_name" ] && local tmp_name=`echo $device_aliases|awk -F '[{}]' '{print $2}'|awk '{gsub(/\,/,"\n");print $0}'|awk '{sub(/:/,",");print $0}'|grep -i $2|awk -F "," '{print $1}'|grep -v "^$"|sort -u`
+	[ -z "$tmp_name" ] && local tmp_name=`dhcp_staticname $2|grep -v "^$"|sort -u` 
 	[ -f "${WORKDIR}ipAddress" ] && [ -z "$tmp_name" ] && local tmp_name=`cat ${WORKDIR}ipAddress|grep -w ${1}|awk '{print $3}'|grep -v "^$"|sort -u`
 	[ -f "${WORKDIR}tmp_downlist" ] && [ -z "$tmp_name" ] && local tmp_name=`cat ${WORKDIR}tmp_downlist|grep -w ${1}|awk '{print $3}'|grep -v "^$"|sort -u`
 	( ! echo "$tmp_name"|grep -q -w "unknown\|*" ) && [ ! -z "$tmp_name" ] && echo "$tmp_name" && return || unset tmp_name # 为unknown时重新读取
@@ -350,7 +362,6 @@ cut_str() {
 # 在线设备列表
 serverchan_first(){
 	[ -f "${WORKDIR}ipAddress" ] && local IPLIST=`cat ${WORKDIR}ipAddress|awk '{print $1}'|grep -oE "([0-9]{1,3}\.){3}[0-9]{1,3}"|grep -Ev "^$|${GW4_WAN}"|sort -u`
-	echo $IPLIST
 	for ip in $IPLIST; do
 		read -u 5
 		{
@@ -479,15 +490,6 @@ ip_changes(){
 		[ ! -z "$SERVERCHAN_IPV6" ] && [ "$SERVERCHAN_IPV6" -ne "0" ] && content="${content}${markdown_linefeed}${markdown_tab}当前IPv6：${IPv6}"
 	fi
 	
-	if [ ! -z "$content" ] ;then
-		[ -z "$ddns_enabled" ] && ddns_enabled=$(uci show ddns|grep "enabled"|grep "1")
-		[ -z "$ddns_enabled" ] && ddns_logrow=0 || ddns_logrow=$(echo "$ddns_enabled"|wc -l)
-		if [ $ddns_logrow -ge 1 ]; then
-			/etc/init.d/ddns stop >/dev/null 2>&1
-			sleep 10
-			/etc/init.d/ddns start >/dev/null 2>&1
-		fi
-	fi
 }
 
 # 检测设备离线
@@ -549,7 +551,7 @@ current_device(){
 	for ip in $IPLIST; do
 		local ip_mac=`getmac ${ip}`
 		local ip_name=`getname ${ip} ${ip_mac}`
-		local ip_name=`cut_str $ip_name 15`
+#		local ip_name=`cut_str $ip_name 15`
 		if [ "${#ip}" -lt "15" ]; then 
 			local n=`expr 15 - ${#ip}`
 			for i in `seq 1 $n`; do
@@ -570,6 +572,7 @@ current_device(){
 
 loop(){
 	# 循环
+	close
 	[ "$(nvram get serverchan_enable)" -eq "1" ] && logger -t "【${APPTYPE}推送】" "启动成功" || logger -t "【${APPTYPE}推送】" "脚本未成功启动，未设置启动参数 serverchan_enable"
 	while [ "$(nvram get serverchan_enable)" -eq "1" ]; do
 		deltemp;local send_disturb=$?
@@ -620,12 +623,10 @@ loop(){
 	logger -t "【${APPTYPE}推送】" "退出脚本"
 }
 
-close() {
-	nvram set serverchan_enable="0"
-	nvram commit
+close(){
 	killall serverchan.sh
 	killall -9 serverchan.sh
-	logger -t "【${APPTYPE}推送】" "停止脚本"
+	logger -t "【${APPTYPE}推送】" "脚本已停止"
 }
 
 case $1 in
@@ -638,6 +639,8 @@ send)
 	send
 	;;
 stop)
+	nvram set serverchan_enable="0"
+	nvram commit
 	close
 	;;
 *)
