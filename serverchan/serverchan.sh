@@ -65,6 +65,8 @@ serverchan_init(){
 	serverchan_up=`nvram_get sc_sc_up 0`
 	# 设备离线通知
 	serverchan_down=`nvram_get sc_sc_down 0`
+	# 监控模式下是否推送当前设备列表
+	serverchan_client_list=`nvram_get sc_sc_cl_ls 0`
 	# 工作目录
 	WORKDIR=`nvram_get sc_workdir "/tmp/serverchan/"`
 ####----------------------------MAC设备信息数据库----------------------------------
@@ -596,7 +598,7 @@ loop(){
 		[ ! -f "${WORKDIR}send_enable.lock" ] && down_send
 		
 		# 当前设备列表
-		[ ! -z "$content" ] && [ ! -f "${WORKDIR}send_enable.lock" ] && current_device
+		[ "$serverchan_client_list" -eq "1" ] && [ ! -z "$content" ] && [ ! -f "${WORKDIR}send_enable.lock" ] && current_device
 
 		# CPU 检测
 		[ ! -f "${WORKDIR}send_enable.lock" ] && cpu_load
