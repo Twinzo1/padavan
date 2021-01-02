@@ -574,7 +574,6 @@ current_device(){
 
 loop(){
 	# 循环
-	close
 	[ "$(nvram get serverchan_enable)" -eq "1" ] && logger -t "【${APPTYPE}推送】" "启动成功" || logger -t "【${APPTYPE}推送】" "脚本未成功启动，未设置启动参数 serverchan_enable"
 	while [ "$(nvram get serverchan_enable)" -eq "1" ]; do
 		deltemp;local send_disturb=$?
