@@ -2,7 +2,7 @@
 # padavan使用function声明函数会出错
 # 定时任务设定 10 22 * * * /usr/bin/serverchan/serverchan send &
 # 设备别名设置
-# 版本：v1.80.1
+# 版本：v1.80.3
 # 详细配置请点击：https://github.com/Twinzo1/padavan/blob/master/serverchan/config.md
 
 alias DATE="date '+%Y-%m-%d %H:%M:%S'"
