@@ -3,11 +3,7 @@
 # 定时任务设定 10 22 * * * /usr/bin/serverchan/serverchan send &
 # 设备别名设置
 # 版本：v1.80.1
-device_aliases={\
-'苹果':'b0:70:2d:33:55:66',\
-'苹果dd':'00:00:00:00:00:00',\
-'我的电脑':'d0:57:7b:22:22:33',\
-}
+# 详细配置请点击：https://github.com/Twinzo1/padavan/blob/master/serverchan/config.md
 
 alias DATE="date '+%Y-%m-%d %H:%M:%S'"
 alias CPUUSAGE="cat /proc/stat|grep '^cpu '|awk '{print \$2+\$3+\$4+\$5+\$6+\$7+\$8 \" \" \$2+\$3+\$4+\$7+\$8}'"
@@ -21,64 +17,49 @@ nvram_get() {
 
 serverchan_init(){
 ############################# 变量填写 #############################################
-	# 路由器状态推送控制
-	ROUTER_STATUS=`nvram_get sc_router_status 1`
-	# ipv6 变动通知
-	SERVERCHAN_IPV6=`nvram_get sc_sc_ipv6 0`
-	# ipv4 变动通知
-	SERVERCHAN_IPV4=`nvram_get sc_sc_ipv4 0`
-	# 本设备名称
 	device_name=`nvram_get sc_device_name "PADAVAN"`
-	# 设备上线检测超时
-	UP_TIMEOUT=`nvram_get sc_up_timeout 2`
-	# 设备离线检测超时
-	DOWN_TIMEOUT=`nvram_get sc_down_timeout 20`
-	# 离线检测次数
-	TIMEOUT_RETRY_COUNT=`nvram_get sc_time_r_c 2`
-	# 检测时间间隔
 	sleeptime=`nvram_get sc_sleeptime 60`
-	# CPU 负载报警
-	cpuload_enable=`nvram_get sc_cpuload_enable 1`
-####-------------------- 钉钉推送信息，需要填写关键词 -----------------------------
+	oui_data=`nvram_get sc_oui_data 0`
+	oui_base="${WORKDIR}oui_base.txt"
+# 钉钉推送信息，需要填写关键词
 	SEND_DD=`nvram_get sc_send_dd 0`
 	DD_BOT_KEYWORD=`nvram_get sc_dd_bot_keyword`
 	DD_BOT_TOKEN=`nvram_get sc_dd_bot_token`
-####-------------------------------------------------------------------------------
-####-------------------------- Telegram推送信息 -----------------------------------
+# Telegram推送信息
 	SEND_TG=`nvram_get sc_send_tg 0`
 	TG_BOT_TOKEN=`nvram_get sc_tg_token`
 	TG_USER_ID=`nvram_get sc_tg_user_id`
 	TG_API="https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage"
-####-------------------------------------------------------------------------------
-####--------------------- 微信（方糖）推送信息 ------------------------------------
+# 微信（方糖）推送信息
 	SEND_SC=`nvram_get sc_send_sc 0`
 	SCKEY=`nvram_get sc_sckey`
-####-------------------------------------------------------------------------------
-	# 推送标题，不要有空格
-	SEND_TITLE=`nvram_get sc_send_title 主路由`
-	# 内容页标题，不要有空格
-	CONTENT_TITLE=`nvram_get sc_content_title "主路由"`
-	# WAN信息
-	ROUTER_WAN=`nvram_get sc_router_wan 1`
-	# 客户端列表
-	CLIENT_LIST=`nvram_get sc_client_list 1`
-	# 设备上线通知
+# 推送内容
+	SERVERCHAN_IPV4=`nvram_get sc_sc_ipv4 0`
+	SERVERCHAN_IPV6=`nvram_get sc_sc_ipv6 0`
 	serverchan_up=`nvram_get sc_sc_up 0`
-	# 设备离线通知
 	serverchan_down=`nvram_get sc_sc_down 0`
-	# 监控模式下是否推送当前设备列表
+	cpuload_enable=`nvram_get sc_cpuload_enable 1`
+	cpuload=`nvram_get sc_cpuload 2`
 	serverchan_client_list=`nvram_get sc_sc_cl_ls 0`
-	# 工作目录
+# 定时推送
+	ROUTER_STATUS=`nvram_get sc_router_status 1`
+	SEND_TITLE=`nvram_get sc_send_title 主路由`
+	CONTENT_TITLE=`nvram_get sc_content_title "主路由"`
+	ROUTER_WAN=`nvram_get sc_router_wan 1`
+	CLIENT_LIST=`nvram_get sc_client_list 1`
+# 免打扰
+	serverchan_sheep=`nvram_get sc_sc_sheep`
+	sheep_start_time=`nvram_get sc_starttime "06:00"`
+	sheep_end_time=`nvram_get sc_endtime "18:00"`
+	serverchan_blacklist=`nvram_get sc_sc_blacklist`
+	serverchan_whitelist=`nvram_get sc_sc_whitelist`
+	serverchan_interface=`nvram_get sc_sc_interface`
+# 高级设置
+	UP_TIMEOUT=`nvram_get sc_up_timeout 2`
+	DOWN_TIMEOUT=`nvram_get sc_down_timeout 20`
+	TIMEOUT_RETRY_COUNT=`nvram_get sc_time_r_c 2`
+# 其它设置
 	WORKDIR=`nvram_get sc_workdir "/tmp/serverchan/"`
-####----------------------------MAC设备信息数据库----------------------------------
-	oui_data=`nvram_get sc_oui_data 0`
-#  下载目录
-	oui_base="${WORKDIR}oui_base.txt"
-#	关闭：0或为空
-#	下载简化版：1
-#	下载完整版：2
-#	网络查询：3
-####-------------------------------------------------------------------------------
 ######################################################################################
 	[ $SEND_DD -eq "1" ] && APPTYPE="钉钉"
 	[ $SEND_TG -eq "1" ] && APPTYPE="${APPTYPE}/TG"
@@ -108,6 +89,13 @@ dhcp_staticname(){
 	echo $tmp_name
 }
 
+# 获取设备别名
+alias_name(){
+	local tmp_order=`nvram show | grep "sc_aliasmac_x" | grep -i "$1" | awk -F "[_|=]" '{print $3}'` 
+	[ -n "$tmp_order" ] && local tmp_name=`nvram show | grep "sc_aliasname_x" | grep "$tmp_order"= | awk -F "=" '{print $2}'`
+	echo $tmp_name
+}
+
 # 清理临时文件
 deltemp(){
 	unset title	content
@@ -133,6 +121,37 @@ getip(){
 		local ipv6_URL="v6.ipv6-test.com/api/myip.php"
 		local hostIPv6=$(curl -k -s -6 ${ipv6_URL})
 		echo "$hostIPv6"
+	fi
+}
+
+# 获取正确的时间设置
+format_time(){
+	[ -z "$1" ] && echo "" && return
+	local tmp_time=`echo $1 | sed 's/://'`
+	[ ${#tmp_time} -ge 5 ] && logger -t "【${APPTYPE}推送】" "免打扰时间参数设置错误" && echo "" && return
+	[ ${#tmp_time} -le 3 ] && echo `echo ${tmp_time}000 | cut -c 1-4`
+}
+
+# 免打扰检测
+serverchan_disturb(){
+	[ -z "$serverchan_sheep" ] || [ -z "$sheep_start_time" ] || [ -z "$sheep_end_time" ] && return 0
+	local nowtime=`date +%H%M`
+	local starttime=`format_time "$sheep_start_time"`
+	local endtime=`format_time "$sheep_end_time"`
+	if [ $nowtime -ge $endtime -a $starttime -lt $endtime ] || [ $nowtime -lt $starttime -a $starttime -lt $endtime ] || [ $nowtime -lt $starttime -a $nowtime -ge $endtime -a $starttime -gt $endtime ]; then
+		unset sheep_starttime
+		return 0
+	else
+		[ -z "$sheep_starttime" ] && logger -t "【${APPTYPE}推送】" "【免打扰】夜深了，该休息了" && sheep_starttime=`date +%s`
+		if [ "$serverchan_sheep" -eq "1" ] ;then
+			while [ `date +%H%M` -lt "$endtime" ]; do
+				[ $(nvram get serverchan_enable) -ne "1" ] && close || sleep 1 
+				sleep $sleeptime
+			done
+		elif  [ "$serverchan_sheep" -eq "2" ] ;then
+			disturb_text="【免打扰】"
+			return 1
+		fi
 	fi
 }
 
@@ -270,7 +289,7 @@ getmac(){
 
 # 查询主机名
 getname(){
-	[ -z "$tmp_name" ] && local tmp_name=`echo $device_aliases|awk -F '[{}]' '{print $2}'|awk '{gsub(/\,/,"\n");print $0}'|awk '{sub(/:/,",");print $0}'|grep -i $2|awk -F "," '{print $1}'|grep -v "^$"|sort -u`
+	[ -z "$tmp_name" ] && local tmp_name=`alias_name $2|grep -v "^$"|sort -u`
 	[ -z "$tmp_name" ] && local tmp_name=`dhcp_staticname $2|grep -v "^$"|sort -u` 
 	[ -f "${WORKDIR}ipAddress" ] && [ -z "$tmp_name" ] && local tmp_name=`cat ${WORKDIR}ipAddress|grep -w ${1}|awk '{print $3}'|grep -v "^$"|sort -u`
 	[ -f "${WORKDIR}tmp_downlist" ] && [ -z "$tmp_name" ] && local tmp_name=`cat ${WORKDIR}tmp_downlist|grep -w ${1}|awk '{print $3}'|grep -v "^$"|sort -u`
@@ -577,7 +596,7 @@ loop(){
 	# 循环
 	[ "$(nvram get serverchan_enable)" -eq "1" ] && logger -t "【${APPTYPE}推送】" "启动成功" || logger -t "【${APPTYPE}推送】" "脚本未成功启动，未设置启动参数 serverchan_enable"
 	while [ "$(nvram get serverchan_enable)" -eq "1" ]; do
-		deltemp;local send_disturb=$?
+		deltemp;serverchan_disturb;local send_disturb=$?
 
 		# 外网IP变化检测
 		if [ ! -z "$SERVERCHAN_IPV4" ] && [ ! -z "$SERVERCHAN_IPV6" ] && [ "$SERVERCHAN_IPV4" -ne "0" ] || [ "$SERVERCHAN_IPV6" -ne "0" ]; then
@@ -626,6 +645,8 @@ loop(){
 }
 
 close(){
+	nvram set serverchan_enable="0"
+	nvram commit
 	killall serverchan.sh
 	killall -9 serverchan.sh
 	logger -t "【${APPTYPE}推送】" "脚本已停止"
@@ -641,8 +662,6 @@ send)
 	send
 	;;
 stop)
-	nvram set serverchan_enable="0"
-	nvram commit
 	close
 	;;
 *)
