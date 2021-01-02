@@ -2,7 +2,7 @@
 # padavan使用function声明函数会出错
 # 定时任务设定 10 22 * * * /usr/bin/serverchan/serverchan send &
 # 设备别名设置
-# 版本：v1.80
+# 版本：v1.80.1
 device_aliases={\
 '苹果':'b0:70:2d:33:55:66',\
 '苹果dd':'00:00:00:00:00:00',\
@@ -26,7 +26,7 @@ serverchan_init(){
 	# ipv6 变动通知
 	SERVERCHAN_IPV6=`nvram_get sc_sc_ipv6 0`
 	# ipv4 变动通知
-	SERVERCHAN_IPV4=`nvram_get sc_sc_ipv4 1`
+	SERVERCHAN_IPV4=`nvram_get sc_sc_ipv4 0`
 	# 本设备名称
 	device_name=`nvram_get sc_device_name "PADAVAN"`
 	# 设备上线检测超时
