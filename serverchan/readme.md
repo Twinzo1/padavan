@@ -2,7 +2,9 @@
 * [x] 微信推送
 * [x] 钉钉推送
 * [ ] TG推送，未测试
-* [ ] 黑白名单
+* [ ] MAC过滤
+* [ ] 免打扰时段
+* [x] 支持静态ip绑定的设备名称
 * [ ] 网络检测，不准备添加
 * [ ] 公网ip获取，不准备添加
 ### 在自定义脚本防火墙前添加:
@@ -21,9 +23,25 @@ nvram commit
 chmod 755 /opt/bin/serverchan.sh && /opt/bin/serverchan.sh start &
 ```
 ### 简单说明
-* 定时推送，每天 22:10 进行推送 ```10 22 * * * /opt/bin/serverchan.sh send```
-* 后台监控 ```/opt/bin/serverchan.sh start &```
-* 停止 ```nvram set serverchan_enable="0" && nvram commit ```或``` /opt/bin/serverchan.sh stop ```
+* 定时推送，每天 22:10 进行推送
+```
+10 22 * * * /opt/bin/serverchan.sh send
+```
+* 后台监控 
+```
+/opt/bin/serverchan.sh start &
+```
+* 停止 
+```
+nvram set serverchan_enable="0" && nvram commit 
+或
+/opt/bin/serverchan.sh stop
+```
+### 建议
+* 如果设备没有设置每日重启，最好添加定时任务，定时清理脚本
+```
+0 0 * * * killall serverchan.sh; /opt/bin/serverchan.sh start &
+```
 ### 配置
 * 请看脚本内部
 * 参照 https://github.com/tty228/luci-app-serverchan 和 https://github.com/zzsj0928/luci-app-serverchand
