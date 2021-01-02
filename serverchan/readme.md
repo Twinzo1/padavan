@@ -1,4 +1,5 @@
-### padavan_serverchan
+## padavan_serverchan
+### 参考 [tty28](https://github.com/tty228/luci-app-serverchan) 和 [zzsj0928](https://github.com/zzsj0928/luci-app-serverchand)，将serverchan移植到padavan
 * [x] 微信推送
 * [x] 钉钉推送
 * [ ] TG推送，未测试
@@ -42,6 +43,5 @@ nvram set serverchan_enable="0" && nvram commit
 ```
 0 0 * * * killall serverchan.sh; /opt/bin/serverchan.sh start &
 ```
-### 配置
-* 请看脚本内部
-* 参照 https://github.com/tty228/luci-app-serverchan 和 https://github.com/zzsj0928/luci-app-serverchand
+### 详细配置
+* [脚本配置说明](https://github.com/Twinzo1/padavan/edit/master/serverchan/config.md)
