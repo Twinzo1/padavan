@@ -27,17 +27,17 @@
 >>* 设备上线通知 ```nvram set sc_sc_up="0"```
 >>* 设备离线通知 ```nvram set sc_sc_down="0"```
 >>* CPU 负载报警 ```nvram set sc_cpuload_enable="1"```
->>* 负载报警阈值 ```nvram set sc_cpuload 2```
->>* 是否推送当前设备列表 ```nvram set sc_sc_cl_ls 0```
+>>* 负载报警阈值 ```nvram set sc_cpuload="2"```
+>>* 是否推送当前设备列表 ```nvram set sc_sc_cl_ls="0"```
 >#### 定时推送
->>* 路由器状态推送控制 ```nvram set sc_router_status 1```
->>* 推送标题，不要有空格 ```nvram set sc_send_title 主路由```
->>* 内容页标题，不要有空格，针对钉钉 ```nvram set sc_content_title "主路由"```
->>* WAN信息 ```nvram set sc_router_wan 1```
->>* 客户端列表 ```nvram set sc_client_list 1```
+>>* 路由器状态推送控制 ```nvram set sc_router_status="1"```
+>>* 推送标题，不要有空格 ```nvram set sc_send_title="主路由"```
+>>* 内容页标题，不要有空格，针对钉钉 ```nvram set sc_content_title="主路由"```
+>>* WAN信息 ```nvram set sc_router_wan="1"```
+>>* 客户端列表 ```nvram set sc_client_list="1"```
 ### 高级设置
->* 设备上线检测超时 ```nvram set sc_up_timeout 2```
->* 设备离线检测超时 ```nvram set sc_down_timeout 20```
->* 离线检测次数 ```nvram set sc_time_r_c 2```
+>* 设备上线检测超时 ```nvram set sc_up_timeout="2"```
+>* 设备离线检测超时 ```nvram set sc_down_timeout="20"```
+>* 离线检测次数 ```nvram set sc_time_r_c="2"```
 ### 其它设置
->* 工作目录 ```nvram set sc_workdir "/tmp/serverchan/"```
+>* 工作目录 ```nvram set sc_workdir="/tmp/serverchan/"```
