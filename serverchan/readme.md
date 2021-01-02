@@ -43,4 +43,4 @@ nvram set serverchan_enable="0" && nvram commit
 0 0 * * * killall serverchan.sh; /opt/bin/serverchan.sh start &
 ```
 ### 详细配置
-* [脚本配置说明](https://github.com/Twinzo1/padavan/edit/master/serverchan/config.md)
+* [脚本配置说明](https://github.com/Twinzo1/padavan/master/serverchan/config.md)
