@@ -2,6 +2,7 @@
 # padavan使用function声明函数会出错
 # 定时任务设定 10 22 * * * /usr/bin/serverchan/serverchan send &
 # 设备别名设置
+# 版本：v1.80
 device_aliases={\
 '苹果':'b0:70:2d:33:55:66',\
 '苹果dd':'00:00:00:00:00:00',\
