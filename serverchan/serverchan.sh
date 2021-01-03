@@ -2,7 +2,7 @@
 # padavan使用function声明函数会出错
 # 定时任务设定 10 22 * * * /usr/bin/serverchan/serverchan send &
 # 设备别名设置
-# 版本：v1.80.4
+# 版本：v1.80.5
 # 详细配置请点击：https://github.com/Twinzo1/padavan/blob/master/serverchan/config.md
 
 alias DATE="date '+%Y-%m-%d %H:%M:%S'"
@@ -65,7 +65,7 @@ serverchan_init(){
 	[ $SEND_TG -eq "1" ] && APPTYPE="${APPTYPE}/TG"
 	[ $SEND_SC -eq "1" ] && APPTYPE="${APPTYPE}/server酱"
 	[ -z "APPTYPE" ] && logger -t "【消息推送】" "未选择推送类型，脚本退出" && exit
-	[ ! -d "$WORKDIR" ] && mkdir "$WORKDIR"
+	[ ! -d "$WORKDIR" ] && mkdir -p "$WORKDIR"
 	markdown_splitline="\n\n---\n\n";markdown_linefeed="\n\n";markdown_tab="     ";markdown_space=" "
 	down_oui &
 	echo "`DATE` 【初始化】载入在线设备"
@@ -454,10 +454,10 @@ up(){
 			[ -f "${WORKDIR}title" ] && local title=`cat ${WORKDIR}title`
 			[ -f "${WORKDIR}content" ] && local content=`cat ${WORKDIR}content`	
 			if [ -z "$title" ]; then
-				local title="新设备上线"
+				local title="有设备【上线】"
 				local content="${markdown_linefeed}${ip_name} 连接了你的路由器${markdown_splitline}#### **<font color=#92D050>新设备连接</font>**${markdown_linefeed}${markdown_tab}客户端名：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_name}${markdown_linefeed}${markdown_tab}客户端IP： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${1}${markdown_linefeed}${markdown_tab}客户端MAC：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_mac}${markdown_linefeed}${markdown_tab}网络接口：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_interface}"
-			elif ( echo ${title}|grep -q "新设备上线" ); then
-				local title="新设备上线"
+			elif ( echo ${title}|grep -q "有设备【上线】" ); then
+				local title="有设备【上线】"
 				local content="${markdown_splitline}${markdown_tab}客户端名：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_name}${markdown_linefeed}${markdown_tab}客户端IP： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${1}${markdown_linefeed}${markdown_tab}客户端MAC：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_mac}${markdown_linefeed}${markdown_tab}网络接口：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_interface}"
 			else
 				local title="设备状态变化"
@@ -551,10 +551,10 @@ down_send(){
 		local time1=`date +%s`
 		local time1=$(time_for_humans `expr ${time1} - ${time_up}`)
 		if [ -z "$title" ]; then
-			title="有设备离线"
+			title="有设备【离线】"
 			content="${markdown_linefeed}${ip_name} 断开连接${content}${markdown_splitline}#### **<font color=#FF6666>设备断开连接</font>**${markdown_linefeed}${markdown_tab}客户端名：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_name}${markdown_linefeed}${markdown_tab}客户端IP： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip}${markdown_linefeed}${markdown_tab}客户端MAC：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_mac}$ip_total${markdown_linefeed}${markdown_tab}在线时间： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${time1}"
-		elif ( echo "$title"|grep -q "设备离线" ); then
-			title="设备离线"
+		elif ( echo "$title"|grep -q "设备【离线】" ); then
+			title="有设备【离线】"
 			content="${content}${markdown_splitline}${markdown_tab}客户端名：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_name}${markdown_linefeed}${markdown_tab}客户端IP： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip}${markdown_linefeed}${markdown_tab}客户端MAC：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_mac}$ip_total${markdown_linefeed}${markdown_tab}在线时间： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${time1}"
 		else
 			title="设备状态变化"
@@ -640,6 +640,7 @@ loop(){
 			sleep $sleeptime
 		done
 		sleep $sleeptime
+		continue
 	done
 	logger -t "【${APPTYPE}推送】" "退出脚本"
 }
