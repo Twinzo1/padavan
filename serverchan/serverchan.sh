@@ -2,7 +2,7 @@
 # padavan使用function声明函数会出错
 # 定时任务设定 10 22 * * * /usr/bin/serverchan/serverchan send &
 # 设备别名设置
-# 版本：v1.80.5
+# 版本：v1.80.6
 # 详细配置请点击：https://github.com/Twinzo1/padavan/blob/master/serverchan/config.md
 
 alias DATE="date '+%Y-%m-%d %H:%M:%S'"
@@ -164,17 +164,16 @@ cpu_load(){
 		[ `expr $cpu_fuzai \> $cpuload` -eq "1" ] && \
 		( logger -t "【${APPTYPE}推送】" "【！！警报！！】 CPU 负载过高: ${cpu_fuzai}"; cputop log ) || cpuload_time=`date +%s`
 		
-		[ "$((`date +%s`-$cpuload_time))" -ge "300" ] && { \
-		if [ -z "$cpucd_time" ]; then
+		if [ "$((`date +%s`-$cpuload_time))" -ge "300" ] && [ -z "$cpucd_time" ]; then
 			unset getlogtop
 			[ ! -z "$title" ] && $(echo "$title"|grep -q "过高") && title="设备报警！" || title="CPU 负载过高！"
 			cpucd_time=`date +%s`
 			logger -t "【${APPTYPE}推送】" " CPU 负 载过高: ${cpu_fuzai}"
 			content="${content}${markdown_splitline}#### <font color=#FF6666>CPU 负载过高</font>${markdown_linefeed}${markdown_tab}CPU 负载已连续五分钟超过预设${markdown_linefeed}${markdown_tab}接下来一小时不再提示${markdown_linefeed}${markdown_tab}当前负载：${cpu_fuzai}"
 			cputop
-		else
+		elif [ ! -z "$cpucd_time" ] && [ "$((`date +%s`-$cpucd_time))" -ge "3300" ] ;then
 			unset cpucd_time
-		fi }
+		fi
 	fi
 }
 
