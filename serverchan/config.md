@@ -42,11 +42,12 @@
 >>* 免打扰结束时间```nvram set sc_endtime="18:00"```
 >>>* 支持1800或18
 >>>* 设为下午6:30，填18:30或1830
->>* 关注列表（仅通知列表内设备）```nvram set sc_sc_blacklist=""```
->>>* ```nvram set sc_sc_blacklist="'11:11:11:11:11:11' '12:91:11:11:11:11'"```
->>* 忽略列表（忽略列表内设备）```nvram set sc_sc_whitelist=""```
->>>* ```nvram set sc_sc_blacklist="'11:11:11:24:11:11' '12:91:11:44:88:11'"```
->>* 接口名称（仅通知次接口设备）```nvram set sc_sc_interface=""```
+>>* MAC过滤，只能选其中一种
+>>>* 关注列表（仅通知列表内设备）```nvram set sc_sc_blacklist=""```
+>>>>* ```nvram set sc_sc_blacklist="'11:11:11:11:11:11' '12:91:11:11:11:11'"```
+>>>* 忽略列表（忽略列表内设备）```nvram set sc_sc_whitelist=""```
+>>>>* ```nvram set sc_sc_blacklist="'11:11:11:24:11:11' '12:91:11:44:88:11'"```
+>>>* 接口名称（仅通知次接口设备）```nvram set sc_sc_interface=""```
 ### 高级设置
 >* 设备上线检测超时 ```nvram set sc_up_timeout="2"```
 >* 设备离线检测超时 ```nvram set sc_down_timeout="20"```
