@@ -37,6 +37,9 @@
 >>* 客户端列表 ```nvram set sc_client_list="1"```
 >#### 免打扰
 >>* 免打扰时段设置```nvram set sc_sc_sheep=""```
+>>>* 关闭：留空
+>>>* 模式一：1
+>>>* 模式二：2
 >>* 免打扰开始时间```nvram set sc_starttime="06:00"```
 >>>* 支持0600或6
 >>* 免打扰结束时间```nvram set sc_endtime="18:00"```
