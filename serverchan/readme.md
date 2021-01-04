@@ -23,24 +23,13 @@ nvram commit
 chmod 755 /opt/bin/serverchan.sh && /opt/bin/serverchan.sh start &
 ```
 ### 简单说明
-* 定时推送，每天 22:10 进行推送
-```
-10 22 * * * /opt/bin/serverchan.sh send
-```
-* 后台监控 
-```
-/opt/bin/serverchan.sh start &
-```
-* 停止 
-```
-nvram set serverchan_enable="0" && nvram commit 
-或
-/opt/bin/serverchan.sh stop
-```
+* 定时推送，每天 22:10 进行推送```10 22 * * * /opt/bin/serverchan.sh send```
+* 后台监控 ```/opt/bin/serverchan.sh start &```
+* 停止 ```nvram set serverchan_enable="0" && nvram commit 或 /opt/bin/serverchan.sh stop```
 ### 建议
-* 如果设备没有设置每日重启，最好添加定时任务，定时清理脚本
-```
-0 0 * * * killall serverchan.sh; /opt/bin/serverchan.sh start &
-```
+* 如果设备没有设置每日重启，最好添加定时任务，定时清理脚本```0 0 * * * killall serverchan.sh; /opt/bin/serverchan.sh start &```
 ### 详细配置
 * [脚本配置说明](https://github.com/Twinzo1/padavan/blob/master/serverchan/config.md)
+# Donate
+如果你觉得此项目对你有帮助，请捐助我们，以使项目能持续发展，更加完善。
+![image]()
