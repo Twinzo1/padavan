@@ -25,6 +25,9 @@ serverchan_init(){
 	SEND_DD=`nvram_get sc_send_dd 0`
 	DD_BOT_KEYWORD=`nvram_get sc_dd_bot_keyword`
 	DD_BOT_TOKEN=`nvram_get sc_dd_bot_token`
+	# send函数可以自定义钉钉分组
+	DD_BOT_KEYWORD_s=`nvram_get sc_dd_bot_keyword "${DD_BOT_KEYWORD}"`
+	DD_BOT_TOKEN_s=`nvram_get sc_dd_bot_token "${DD_BOT_TOKEN}"`
 # Telegram推送信息
 	SEND_TG=`nvram_get sc_send_tg 0`
 	TG_BOT_TOKEN=`nvram_get sc_tg_token`
@@ -263,12 +266,12 @@ send(){
 	[ ! -z "$device_name" ] && local SEND_TITLE="【$device_name】${SEND_TITLE}" && CONTENT_TITLE="【$device_name】${CONTENT_TITLE}"
 	local SEND_TITLE=`echo "$SEND_TITLE"|sed $'s/\ / /g'|sed $'s/\"/%22/g'|sed $'s/\#/%23/g'|sed $'s/\&/%26/g'|sed $'s/\,/%2C/g'|sed $'s/\//%2F/g'|sed $'s/\:/%3A/g'|sed $'s/\;/%3B/g'|sed $'s/\=/%3D/g'|sed $'s/\@/%40/g'`
 	[ -z "$send_content" ] && local send_content="${markdown_splitline}#### <font color=#FF6666>我遇到了一个难题</font>${markdown_linefeed}${markdown_tab}定时发送选项错误，你没有选择需要发送的项目，该怎么办呢${markdown_splitline}"
-	local dd_send_content="${send_content}${markdown_splitline}【KEYWORD】 ${DD_BOT_KEYWORD}${markdown_linefeed}${markdown_tab}【发送时间】 $(DATE)"
-	local dd_send="curl -k -s \"https://oapi.dingtalk.com/robot/send?access_token=${DD_BOT_TOKEN}\" -H 'Content-Type: application/json' -d '{\"msgtype\": \"markdown\",\"markdown\": {\"title\":\"${SEND_TITLE}\",\"text\":\"${CONTENT_TITLE}${markdown_linefeed}${dd_send_content}\"}}'"
+	local dd_send_content="${send_content}${markdown_splitline}【KEYWORD】 ${DD_BOT_KEYWORD_s}${markdown_linefeed}${markdown_tab}【发送时间】 $(DATE)"
+	local dd_send="curl -k -s \"https://oapi.dingtalk.com/robot/send?access_token=${DD_BOT_TOKEN_s}\" -H 'Content-Type: application/json' -d '{\"msgtype\": \"markdown\",\"markdown\": {\"title\":\"${SEND_TITLE}\",\"text\":\"${CONTENT_TITLE}${markdown_linefeed}${dd_send_content}\"}}'"
 	local tg_send="curl -s -d \"text=${SEND_TITLE}${markdown_linefeed}$(DATE)${markdown_linefeed}${send_content}\" -X POST \"${TG_API}\" -d chat_id=\"${TG_USER_IDID}\""
 	local sc_send="curl -k -s \"https://sc.ftqq.com/${SCKEY}.send?text=${SEND_TITLE}\" -d \"desp=$(DATE)${markdown_linefeed}${send_content}${markdown_linefeed}\\\`\\\`\\\`\""
 	local sc_send=`echo "${sc_send}" | sed 's/\*\*\\\n\\\n/\*\*%0D%0A\\\\\`\\\\\`\\\\\`%0D%0A/g; s/\\\n\\\n---/%0D%0A\\\\\`\\\\\`\\\\\`%0D%0A---/g; s/%0D%0A\\\\\`\\\\\`\\\\\`%0D%0A---/\\\n\\\n---/; s/\\\n\\\n/%0D%0A%0D%0A/g'`
-	[ "$send_disturb" -eq "0" ] && [ "$SEND_DD" -eq "1" ] && [ -n $DD_BOT_KEYWORD ] &&[ -n $DD_BOT_TOKEN ] && echo `eval $dd_send`
+	[ "$send_disturb" -eq "0" ] && [ "$SEND_DD" -eq "1" ] && [ -n $DD_BOT_KEYWORD_s ] &&[ -n $DD_BOT_TOKEN_s ] && echo `eval $dd_send`
 	[ "$send_disturb" -eq "0" ] && [ "$SEND_TG" -eq "1" ] && [ -n $TG_BOT_TOKEN ] && [ -n $TG_USER_ID ] && echo `eval $tg_send`
 	[ "$send_disturb" -eq "0" ] && [ "$SEND_SC" -eq "1" ] && [ -n $SCKEY ] && echo `eval $sc_send`
 	deltemp
