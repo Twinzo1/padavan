@@ -33,4 +33,4 @@ chmod 755 /opt/bin/serverchan.sh && /opt/bin/serverchan.sh start &
 # Donate
 如果你觉得此项目对你有帮助，请捐助我们，以使项目能持续发展，更加完善。
 
-![image](https://github.com/Twinzo1/padavan/blob/master/sundry/1.jpg)
+<img src="https://github.com/Twinzo1/padavan/blob/master/sundry/1.jpg" width = "300" alt="图片描述" align=center />
