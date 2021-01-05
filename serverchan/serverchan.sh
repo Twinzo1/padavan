@@ -20,7 +20,6 @@ serverchan_init(){
 	device_name=`nvram_get sc_device_name "PADAVAN"`
 	sleeptime=`nvram_get sc_sleeptime 60`
 	oui_data=`nvram_get sc_oui_data 0`
-	oui_base="${WORKDIR}oui_base.txt"
 # 钉钉推送信息，需要填写关键词
 	SEND_DD=`nvram_get sc_send_dd 0`
 	DD_BOT_KEYWORD=`nvram_get sc_dd_bot_keyword`
@@ -67,6 +66,7 @@ serverchan_init(){
 	[ $SEND_DD -eq "1" ] && APPTYPE="钉钉"
 	[ $SEND_TG -eq "1" ] && APPTYPE="${APPTYPE}/TG"
 	[ $SEND_SC -eq "1" ] && APPTYPE="${APPTYPE}/server酱"
+	oui_base="${WORKDIR}oui_base.txt"
 	[ -z "APPTYPE" ] && logger -t "【消息推送】" "未选择推送类型，脚本退出" && exit
 	[ ! -d "$WORKDIR" ] && mkdir -p "$WORKDIR"
 	markdown_splitline="\n\n---\n\n";markdown_linefeed="\n\n";markdown_tab="     ";markdown_space=" "
