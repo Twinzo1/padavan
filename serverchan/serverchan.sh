@@ -2,7 +2,7 @@
 # padavan使用function声明函数会出错
 # 定时任务设定 10 22 * * * /usr/bin/serverchan/serverchan send &
 # 设备别名设置
-# 版本：v1.80.6
+# 版本：v1.80.7
 # 详细配置请点击：https://github.com/Twinzo1/padavan/blob/master/serverchan/config.md
 
 alias DATE="date '+%Y-%m-%d %H:%M:%S'"
@@ -54,9 +54,10 @@ serverchan_init(){
 	serverchan_sheep=`nvram_get sc_sc_sheep`
 	sheep_start_time=`nvram_get sc_starttime "06:00"`
 	sheep_end_time=`nvram_get sc_endtime "18:00"`
-	serverchan_blacklist=`nvram_get sc_sc_blacklist`
-	serverchan_whitelist=`nvram_get sc_sc_whitelist`
-	serverchan_interface=`nvram_get sc_sc_interface`
+	filter_mode=`nvram_get sc_filter_mode`
+	[ "$filter_mode" == "watch" ] && serverchan_watchlist=`nvram_get sc_sc_watchlist`
+	[ "$filter_mode" == "ignore" ] && serverchan_ignorelist=`nvram_get sc_sc_ignorelist`
+	[ "$filter_mode" == "iface" ] && serverchan_interface=`nvram_get sc_sc_interface`
 # 高级设置
 	UP_TIMEOUT=`nvram_get sc_up_timeout 2`
 	DOWN_TIMEOUT=`nvram_get sc_down_timeout 20`
@@ -430,9 +431,9 @@ LockFile(){
 # 检测黑白名单
 blackwhitelist(){
 	[ ! "$1" ] && return 1
-	[ -z "$serverchan_whitelist" ] && [ -z "$serverchan_blacklist" ] && [ -z "$serverchan_interface" ] && return
-	[ ! -z "$serverchan_whitelist" ] && ( ! echo "$serverchan_whitelist"|grep -q -i -w $1) && return
-	[ ! -z "$serverchan_blacklist" ] && ( echo "$serverchan_blacklist"|grep -q -i -w $1) && return
+	[ "$filter_mode" == "ignore" ] || [ "$filter_mode" == "watch" ] || [ "$filter_mode" == "iface" ] || return
+	[ ! -z "$serverchan_ignorelist" ] && ( ! echo "$serverchan_ignorelist"|grep -q -i -w $1) && return
+	[ ! -z "$serverchan_watchlist" ] && ( echo "$serverchan_watchlist"|grep -q -i -w $1) && return
 	[ ! -z "$serverchan_interface" ] && ( echo `getinterface ${1}`|grep -q -i -w $serverchan_interface ) && return
 }
 
@@ -466,7 +467,7 @@ up(){
 				local content="${markdown_linefeed}${ip_name} 连接了你的路由器${markdown_splitline}#### **<font color=#92D050>新设备连接</font>**${markdown_linefeed}${markdown_tab}客户端名：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_name}${markdown_linefeed}${markdown_tab}客户端IP： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${1}${markdown_linefeed}${markdown_tab}客户端MAC：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_mac}${markdown_linefeed}${markdown_tab}网络接口：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_interface}"
 			fi				
 			logger -t "【${APPTYPE}推送】" "新设备 ${ip_name} ${1} 连接了"
-			[ ! -z "$serverchan_blacklist" ] && local title="你偷偷关注的设备上线了"
+			[ ! -z "$serverchan_watchlist" ] && local title="你偷偷关注的设备上线了"
 			[ ! -z "$title" ] && echo "$title" >${WORKDIR}title
 			[ ! -z "$content" ] && echo -n "$content" >>${WORKDIR}content
 		fi
