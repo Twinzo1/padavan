@@ -138,24 +138,12 @@ format_time(){
 
 # 免打扰检测
 serverchan_disturb(){
-	[ -z "$serverchan_sheep" ] || [ -z "$sheep_start_time" ] || [ -z "$sheep_end_time" ] && return 0
+	[ "$serverchan_sheep" -eq "1" -o  "$serverchan_sheep" -eq "2" ] || [ -z "$sheep_start_time" ] || [ -z "$sheep_end_time" ] && return 0
 	local nowtime=`date +%H%M`
 	local starttime=`format_time "$sheep_start_time"`
 	local endtime=`format_time "$sheep_end_time"`
-	if [ $nowtime -ge $endtime -a $starttime -lt $endtime ] || [ $nowtime -lt $starttime -a $starttime -lt $endtime ] || [ $nowtime -lt $starttime -a $nowtime -ge $endtime -a $starttime -gt $endtime ]; then
-		unset sheep_starttime
-		return 0
-	else
-		[ -z "$sheep_starttime" ] && logger -t "【${APPTYPE}推送】" "【免打扰】夜深了，该休息了" && sheep_starttime=`date +%s`
-		if [ "$serverchan_sheep" -eq "1" ] ;then
-			while [ `date +%H%M` -lt "$endtime" ]; do
-				[ $(nvram get serverchan_enable) -ne "1" ] && close || sleep 1 
-				sleep $sleeptime
-			done
-		elif  [ "$serverchan_sheep" -eq "2" ] ;then
-			disturb_text="【免打扰】"
-			return 1
-		fi
+	if [ $starttime -lt $endtime -a $nowtime -le $endtime -a $nowtime -ge $starttime ] && [ $starttime -gt $endtime -a $nowtime -le $endtime -a $nowtime -ge $starttime ]; then
+		[ "$serverchan_sheep" -eq "1" ] && sc_sheep="hang on" || sc_sheep="silent"
 	fi
 }
 
@@ -598,8 +586,14 @@ current_device(){
 loop(){
 	# 循环
 	[ "$(nvram get serverchan_enable)" -eq "1" ] && logger -t "【${APPTYPE}推送】" "启动成功" || logger -t "【${APPTYPE}推送】" "脚本未成功启动，未设置启动参数 serverchan_enable"
+	[ "$sc_sheep" = "hang on" ] && logger -t "【${APPTYPE}推送】" "脚本挂起，时间为【`format_time \"$sheep_start_time\" |  sed \"s/./&:/2\"`】至【`format_time \"$sheep_end_time\" |  sed \"s/./&:/2\"`】"
+	[ "$sc_sheep" = "silent" ] && logger -t "【${APPTYPE}推送】" "静默模式，时间为【`format_time \"$sheep_start_time\" |  sed \"s/./&:/2\"`】至【`format_time \"$sheep_end_time\" |  sed \"s/./&:/2\"`】"
 	while [ "$(nvram get serverchan_enable)" -eq "1" ]; do
-		deltemp;serverchan_disturb;local send_disturb=$?
+		deltemp
+		serverchan_disturb
+		sc_sheep=""
+		[ "$sc_sheep" = "hang on" ] && sleep 60 && continue
+		local send_disturb=$?
 
 		# 外网IP变化检测
 		if [ ! -z "$SERVERCHAN_IPV4" ] && [ ! -z "$SERVERCHAN_IPV6" ] && [ "$SERVERCHAN_IPV4" -ne "0" ] || [ "$SERVERCHAN_IPV6" -ne "0" ]; then
@@ -624,6 +618,7 @@ loop(){
 
 		# CPU 检测
 		[ ! -f "${WORKDIR}send_enable.lock" ] && cpu_load
+		[ "$sc_sheep" = "silent" ] && sleep $sleeptime && continue
 		if [ ! -f "${WORKDIR}send_enable.lock" ] && [ ! -z "$title" ] && [ ! -z "$content" ]; then
 			[ ! -z "$device_name" ] && title="【${device_name}${CONTENT_TITLE}】$title"
 			title=`echo "$title"|sed $'s/\ / /g'|sed $'s/\"/%22/g'|sed $'s/\#/%23/g'|sed $'s/\&/%26/g'|sed $'s/\,/%2C/g'|sed $'s/\//%2F/g'|sed $'s/\:/%3A/g'|sed $'s/\;/%3B/g'|sed $'s/\=/%3D/g'|sed $'s/\@/%40/g'`
@@ -659,6 +654,7 @@ close(){
 case $1 in
 start)
 	serverchan_init
+	serverchan_disturb
 	loop
 	;;
 send)
