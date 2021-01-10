@@ -132,13 +132,14 @@ getip(){
 format_time(){
 	[ -z "$1" ] && echo "" && return
 	local tmp_time=`echo $1 | sed 's/://'`
-	[ ${#tmp_time} -ge 5 ] && logger -t "【${APPTYPE}推送】" "免打扰时间参数设置错误" && echo "" && return
-	[ ${#tmp_time} -le 3 ] && echo `echo ${tmp_time}000 | cut -c 1-4`
+	[ ${#tmp_time} -ge 5 ] && logger -t "【${APPTYPE}推送】" "免打扰时间参数设置错误" && tmp_time=""
+	[ ${#tmp_time} -le 3 ] && tmp_time=`echo ${tmp_time}000 | cut -c 1-4`
+	echo ${tmp_time}
 }
 
 # 免打扰检测
 serverchan_disturb(){
-	[ "$serverchan_sheep" -eq "1" -o  "$serverchan_sheep" -eq "2" ] || [ -z "$sheep_start_time" ] || [ -z "$sheep_end_time" ] && return 0
+	[ "$serverchan_sheep"x != "1"x -a "$serverchan_sheep"x != "2"x ] || [ -z "$sheep_start_time" ] || [ -z "$sheep_end_time" ] && return 0
 	local nowtime=`date +%H%M`
 	local starttime=`format_time "$sheep_start_time"`
 	local endtime=`format_time "$sheep_end_time"`
@@ -586,8 +587,9 @@ current_device(){
 loop(){
 	# 循环
 	[ "$(nvram get serverchan_enable)" -eq "1" ] && logger -t "【${APPTYPE}推送】" "启动成功" || logger -t "【${APPTYPE}推送】" "脚本未成功启动，未设置启动参数 serverchan_enable"
-	[ "$sc_sheep" = "hang on" ] && logger -t "【${APPTYPE}推送】" "脚本挂起，时间为【`format_time \"$sheep_start_time\" |  sed \"s/./&:/2\"`】至【`format_time \"$sheep_end_time\" |  sed \"s/./&:/2\"`】"
-	[ "$sc_sheep" = "silent" ] && logger -t "【${APPTYPE}推送】" "静默模式，时间为【`format_time \"$sheep_start_time\" |  sed \"s/./&:/2\"`】至【`format_time \"$sheep_end_time\" |  sed \"s/./&:/2\"`】"
+	[ "$serverchan_sheep"x = "1"x ] && logger -t "【${APPTYPE}推送】" "脚本挂起，时间为【`format_time \"$sheep_start_time\" |  sed \"s/./&:/2\"`】至【`format_time \"$sheep_end_time\" |  sed \"s/./&:/2\"`】"
+	[ "$serverchan_sheep"x = "2"x ] && logger -t "【${APPTYPE}推送】" "静默模式，时间为【`format_time \"$sheep_start_time\" |  sed \"s/./&:/2\"`】至【`format_time \"$sheep_end_time\" |  sed \"s/./&:/2\"`】"
+	serverchan_disturb
 	while [ "$(nvram get serverchan_enable)" -eq "1" ]; do
 		deltemp
 		serverchan_disturb
@@ -654,7 +656,6 @@ close(){
 case $1 in
 start)
 	serverchan_init
-	serverchan_disturb
 	loop
 	;;
 send)
