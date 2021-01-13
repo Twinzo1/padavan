@@ -150,7 +150,7 @@ serverchan_disturb(){
 
 # 检查CPU状态
 cpu_load(){
-	if [ "$cpuload_enable" -eq "1" ] && [ ! -z "$cpuload" ]; then
+	if [ "$cpuload_enable"x = "1"x ] && [ ! -z "$cpuload" ]; then
 		[ -z "$cpuload_time" ] && cpuload_time=`date +%s`
 		local cpu_fuzai=`cat /proc/loadavg|awk '{print $1}'` 2>/dev/null
 		[ -z "$cpu_fuzai" ] && logger -t "【${APPTYPE}推送】" "无法读取设备负载，请检查命令！！！"
@@ -237,7 +237,7 @@ send(){
 		local send_content="${send_content}${markdown_linefeed}${markdown_tab}${wanstatustime}"
 	fi
 
-	if [ ! -z "$CLIENT_LIST" ] && [ "$CLIENT_LIST" -eq "1" ]; then
+	if [ "$CLIENT_LIST"x = "1"x ]; then
 		wait
 		local IPLIST=`cat ${WORKDIR}ipAddress 2>/dev/null|awk '{print $1}'`
 		[ -z "$IPLIST" ] && local send_content="${send_content}${markdown_splitline} \n #### **<font color=#FF6666>当前无在线设备</font>**" || local send_content="${send_content}${markdown_splitline}#### **<font color=#76CCFF>在线设备</font>**"
@@ -442,7 +442,7 @@ up(){
 			local ip_name=`getname ${1} ${ip_mac}`
 			blackwhitelist ${ip_mac};local ip_blackwhite=$?
 			grep -w ${ip_mac} ${WORKDIR}ipAddress && return || echo "$1 ${ip_mac} ${ip_name} `date +%s` ${ip_interface}" >> ${WORKDIR}ipAddress
-			[ -f "${WORKDIR}send_enable.lock" ] || [ -z "$serverchan_up" ] || [ "$serverchan_up" -ne "1" ] || [ -z "$ip_blackwhite" ] || [ "$ip_blackwhite" -ne 0 ] && LockFile unlock && return
+			[ -f "${WORKDIR}send_enable.lock" ] || [ "$serverchan_up"x != "1"x ] || [ "$ip_blackwhite"x != "0"x ] && LockFile unlock && return
 			[ -f "${WORKDIR}title" ] && local title=`cat ${WORKDIR}title`
 			[ -f "${WORKDIR}content" ] && local content=`cat ${WORKDIR}content`	
 			if [ -z "$title" ]; then
@@ -466,10 +466,10 @@ up(){
 
 # 检测 ip 状况
 ip_changes(){
-	[ ! -z "$SERVERCHAN_IPV4" ] && [ "$SERVERCHAN_IPV4" -eq "1" ] && local IPv4=`getip wanipv4`
-	[ ! -z "$SERVERCHAN_IPV4" ] && [ "$SERVERCHAN_IPV4" -eq "2" ] && local IPv4=`getip hostipv4`
-	[ ! -z "$SERVERCHAN_IPV6" ] && [ "$SERVERCHAN_IPV6" -eq "1" ] && local IPv6=`getip wanipv6`
-	[ ! -z "$SERVERCHAN_IPV6" ] && [ "$SERVERCHAN_IPV6" -eq "2" ] && local IPv6=`getip hostipv6`
+	[ "$SERVERCHAN_IPV4"x = "1"x ] && local IPv4=`getip wanipv4`
+	[ "$SERVERCHAN_IPV4"x = "2"x ] && local IPv4=`getip hostipv4`
+	[ "$SERVERCHAN_IPV6"x = "1"x ] && local IPv6=`getip wanipv6`
+	[ "$SERVERCHAN_IPV6"x = "2"x ] && local IPv6=`getip hostipv6`
 
 	if [ -f ${WORKDIR}ip ]; then
 		local last_IPv4=$(cat "${WORKDIR}ip"|grep IPv4|awk '{print $2}'|grep -v "^$"|sort -u)
