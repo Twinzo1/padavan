@@ -143,7 +143,7 @@ serverchan_disturb(){
 	local nowtime=`date +%H%M`
 	local starttime=`format_time "$sheep_start_time"`
 	local endtime=`format_time "$sheep_end_time"`
-	if [ $starttime -lt $endtime -a $nowtime -le $endtime -a $nowtime -ge $starttime ] && [ $starttime -gt $endtime -a $nowtime -le $endtime -a $nowtime -ge $starttime ]; then
+	if [ $starttime -lt $endtime -a $nowtime -le $endtime -a $nowtime -ge $starttime ] || [ $starttime -gt $endtime -a $nowtime -le $endtime -a $nowtime -ge $starttime ]; then
 		[ "$serverchan_sheep" -eq "1" ] && sc_sheep="hang on" || sc_sheep="silent"
 	else
 		return 0
@@ -591,7 +591,6 @@ loop(){
 	[ "$(nvram get serverchan_enable)" -eq "1" ] && logger -t "【${APPTYPE}推送】" "启动成功" || logger -t "【${APPTYPE}推送】" "脚本未成功启动，未设置启动参数 serverchan_enable"
 	[ "$serverchan_sheep"x = "1"x ] && logger -t "【${APPTYPE}推送】" "脚本挂起，时间为【`format_time \"$sheep_start_time\" |  sed \"s/./&:/2\"`】至【`format_time \"$sheep_end_time\" |  sed \"s/./&:/2\"`】"
 	[ "$serverchan_sheep"x = "2"x ] && logger -t "【${APPTYPE}推送】" "静默模式，时间为【`format_time \"$sheep_start_time\" |  sed \"s/./&:/2\"`】至【`format_time \"$sheep_end_time\" |  sed \"s/./&:/2\"`】"
-	serverchan_disturb
 	while [ "$(nvram get serverchan_enable)" -eq "1" ]; do
 		deltemp
 		sc_sheep=""
