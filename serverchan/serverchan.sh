@@ -594,9 +594,9 @@ loop(){
 	serverchan_disturb
 	while [ "$(nvram get serverchan_enable)" -eq "1" ]; do
 		deltemp
+		sc_sheep=""
 		serverchan_disturb
 		local send_disturb=$?
-		sc_sheep=""
 		[ "$sc_sheep" = "hang on" ] && sleep 60 && continue
 		# 外网IP变化检测
 		if [ ! -z "$SERVERCHAN_IPV4" ] && [ ! -z "$SERVERCHAN_IPV6" ] && [ "$SERVERCHAN_IPV4" -ne "0" ] || [ "$SERVERCHAN_IPV6" -ne "0" ]; then
