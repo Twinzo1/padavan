@@ -10,7 +10,7 @@
 ### 在自定义脚本防火墙前添加:
 ```
 logger -t "【消息推送】" "serverchan脚本"
-curl -k -s -o /opt/bin/smartdns.sh --connect-timeout 10 --retry 3 https://raw.githubusercontent.com/Twinzo1/padavan/master/serverchan/serverchan.sh
+[ ! -f /opt/bin/serverchan.sh ] && curl -k -s -o /opt/bin/serverchan.sh --connect-timeout 10 --retry 3 https://raw.githubusercontent.com/Twinzo1/padavan/master/serverchan/serverchan.sh
 # 主要变量设置
 nvram set sc_send_dd="1"
 nvram set sc_dd_bot_keyword=""
