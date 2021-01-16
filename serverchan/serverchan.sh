@@ -1,8 +1,8 @@
 #!/bin/sh
-# padavan使用function声明函数会出错
+# padavan使用function声明函数会出错，$?为上一个函数的返回值，不可轻易变动
 # 定时任务设定 10 22 * * * /usr/bin/serverchan/serverchan send &
 # 设备别名设置
-# 版本：v1.80.6
+# 版本：v1.80.7
 # 详细配置请点击：https://github.com/Twinzo1/padavan/blob/master/serverchan/config.md
 
 alias DATE="date '+%Y-%m-%d %H:%M:%S'"
@@ -53,9 +53,10 @@ serverchan_init(){
 	serverchan_sheep=`nvram_get sc_sc_sheep`
 	sheep_start_time=`nvram_get sc_starttime "06:00"`
 	sheep_end_time=`nvram_get sc_endtime "18:00"`
-	serverchan_blacklist=`nvram_get sc_sc_blacklist`
-	serverchan_whitelist=`nvram_get sc_sc_whitelist`
-	serverchan_interface=`nvram_get sc_sc_interface`
+	filter_mode=`nvram_get sc_filter_mode`
+	[ "$filter_mode" == "watch" ] && serverchan_watchlist=`nvram_get sc_sc_watchlist`
+	[ "$filter_mode" == "ignore" ] && serverchan_ignorelist=`nvram_get sc_sc_ignorelist`
+	[ "$filter_mode" == "iface" ] && serverchan_interface=`nvram_get sc_sc_interface`
 # 高级设置
 	UP_TIMEOUT=`nvram_get sc_up_timeout 2`
 	DOWN_TIMEOUT=`nvram_get sc_down_timeout 20`
@@ -131,36 +132,27 @@ getip(){
 format_time(){
 	[ -z "$1" ] && echo "" && return
 	local tmp_time=`echo $1 | sed 's/://'`
-	[ ${#tmp_time} -ge 5 ] && logger -t "【${APPTYPE}推送】" "免打扰时间参数设置错误" && echo "" && return
-	[ ${#tmp_time} -le 3 ] && echo `echo ${tmp_time}000 | cut -c 1-4`
+	[ ${#tmp_time} -ge 5 ] && logger -t "【${APPTYPE}推送】" "免打扰时间参数设置错误" && tmp_time=""
+	[ ${#tmp_time} -le 3 ] && tmp_time=`echo ${tmp_time}000 | cut -c 1-4`
+	echo ${tmp_time}
 }
 
 # 免打扰检测
 serverchan_disturb(){
-	[ -z "$serverchan_sheep" ] || [ -z "$sheep_start_time" ] || [ -z "$sheep_end_time" ] && return 0
+	[ "$serverchan_sheep"x != "1"x -a "$serverchan_sheep"x != "2"x ] || [ -z "$sheep_start_time" ] || [ -z "$sheep_end_time" ] && return 0
 	local nowtime=`date +%H%M`
 	local starttime=`format_time "$sheep_start_time"`
 	local endtime=`format_time "$sheep_end_time"`
-	if [ $nowtime -ge $endtime -a $starttime -lt $endtime ] || [ $nowtime -lt $starttime -a $starttime -lt $endtime ] || [ $nowtime -lt $starttime -a $nowtime -ge $endtime -a $starttime -gt $endtime ]; then
-		unset sheep_starttime
-		return 0
+	if [ $starttime -lt $endtime -a $nowtime -le $endtime -a $nowtime -ge $starttime ] || [ $starttime -gt $endtime -a $nowtime -le $endtime -a $nowtime -ge $starttime ]; then
+		[ "$serverchan_sheep" -eq "1" ] && sc_sheep="hang on" || sc_sheep="silent"
 	else
-		[ -z "$sheep_starttime" ] && logger -t "【${APPTYPE}推送】" "【免打扰】夜深了，该休息了" && sheep_starttime=`date +%s`
-		if [ "$serverchan_sheep" -eq "1" ] ;then
-			while [ `date +%H%M` -lt "$endtime" ]; do
-				[ $(nvram get serverchan_enable) -ne "1" ] && close || sleep 1 
-				sleep $sleeptime
-			done
-		elif  [ "$serverchan_sheep" -eq "2" ] ;then
-			disturb_text="【免打扰】"
-			return 1
-		fi
+		return 0
 	fi
 }
 
 # 检查CPU状态
 cpu_load(){
-	if [ "$cpuload_enable" -eq "1" ] && [ ! -z "$cpuload" ]; then
+	if [ "$cpuload_enable"x = "1"x ] && [ ! -z "$cpuload" ]; then
 		[ -z "$cpuload_time" ] && cpuload_time=`date +%s`
 		local cpu_fuzai=`cat /proc/loadavg|awk '{print $1}'` 2>/dev/null
 		[ -z "$cpu_fuzai" ] && logger -t "【${APPTYPE}推送】" "无法读取设备负载，请检查命令！！！"
@@ -247,7 +239,7 @@ send(){
 		local send_content="${send_content}${markdown_linefeed}${markdown_tab}${wanstatustime}"
 	fi
 
-	if [ ! -z "$CLIENT_LIST" ] && [ "$CLIENT_LIST" -eq "1" ]; then
+	if [ "$CLIENT_LIST"x = "1"x ]; then
 		wait
 		local IPLIST=`cat ${WORKDIR}ipAddress 2>/dev/null|awk '{print $1}'`
 		[ -z "$IPLIST" ] && local send_content="${send_content}${markdown_splitline} \n #### **<font color=#FF6666>当前无在线设备</font>**" || local send_content="${send_content}${markdown_splitline}#### **<font color=#76CCFF>在线设备</font>**"
@@ -430,56 +422,18 @@ LockFile(){
 # 检测黑白名单
 blackwhitelist(){
 	[ ! "$1" ] && return 1
-	[ -z "$serverchan_whitelist" ] && [ -z "$serverchan_blacklist" ] && [ -z "$serverchan_interface" ] && return
-	[ ! -z "$serverchan_whitelist" ] && ( ! echo "$serverchan_whitelist"|grep -q -i -w $1) && return
-	[ ! -z "$serverchan_blacklist" ] && ( echo "$serverchan_blacklist"|grep -q -i -w $1) && return
-	[ ! -z "$serverchan_interface" ] && ( echo `getinterface ${1}`|grep -q -i -w $serverchan_interface ) && return
-}
-
-# 检测设备上线
-up(){
-	[ -f ${WORKDIR}ipAddress ] && ( cat ${WORKDIR}ipAddress|grep -q -w $1 ) && return
-	local ip_mac=`getmac $1`
-	local ip_interface=`getinterface ${ip_mac}`
-	getping ${1} ${UP_TIMEOUT} "1";local ping_online=$?
-	if [ "$ping_online" -eq "0" ]; then
-		LockFile lock
-		[ -f "${WORKDIR}tmp_downlist" ] && local tmp_downip=`cat ${WORKDIR}tmp_downlist|grep -w ${1}|grep -v "^$"|sort -u`
-		if [ ! -z "$tmp_downip" ]; then
-			cat ${WORKDIR}tmp_downlist|grep -w ${1}|grep -v "^$"|sort -u >> ${WORKDIR}ipAddress
-			sed -i "/^${1} /d" ${WORKDIR}tmp_downlist
-		else
-			local ip_name=`getname ${1} ${ip_mac}`
-			blackwhitelist ${ip_mac};local ip_blackwhite=$?
-			grep -w ${ip_mac} ${WORKDIR}ipAddress && return || echo "$1 ${ip_mac} ${ip_name} `date +%s` ${ip_interface}" >> ${WORKDIR}ipAddress
-			[ -f "${WORKDIR}send_enable.lock" ] || [ -z "$serverchan_up" ] || [ "$serverchan_up" -ne "1" ] || [ -z "$ip_blackwhite" ] || [ "$ip_blackwhite" -ne 0 ] && LockFile unlock && return
-			[ -f "${WORKDIR}title" ] && local title=`cat ${WORKDIR}title`
-			[ -f "${WORKDIR}content" ] && local content=`cat ${WORKDIR}content`	
-			if [ -z "$title" ]; then
-				local title="有设备【上线】"
-				local content="${markdown_linefeed}${ip_name} 连接了你的路由器${markdown_splitline}#### **<font color=#92D050>新设备连接</font>**${markdown_linefeed}${markdown_tab}客户端名：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_name}${markdown_linefeed}${markdown_tab}客户端IP： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${1}${markdown_linefeed}${markdown_tab}客户端MAC：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_mac}${markdown_linefeed}${markdown_tab}网络接口：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_interface}"
-			elif ( echo ${title}|grep -q "有设备【上线】" ); then
-				local title="有设备【上线】"
-				local content="${markdown_splitline}${markdown_tab}客户端名：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_name}${markdown_linefeed}${markdown_tab}客户端IP： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${1}${markdown_linefeed}${markdown_tab}客户端MAC：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_mac}${markdown_linefeed}${markdown_tab}网络接口：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_interface}"
-			else
-				local title="设备状态变化"
-				local content="${markdown_linefeed}${ip_name} 连接了你的路由器${markdown_splitline}#### **<font color=#92D050>新设备连接</font>**${markdown_linefeed}${markdown_tab}客户端名：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_name}${markdown_linefeed}${markdown_tab}客户端IP： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${1}${markdown_linefeed}${markdown_tab}客户端MAC：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_mac}${markdown_linefeed}${markdown_tab}网络接口：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_interface}"
-			fi				
-			logger -t "【${APPTYPE}推送】" "新设备 ${ip_name} ${1} 连接了"
-			[ ! -z "$serverchan_blacklist" ] && local title="你偷偷关注的设备上线了"
-			[ ! -z "$title" ] && echo "$title" >${WORKDIR}title
-			[ ! -z "$content" ] && echo -n "$content" >>${WORKDIR}content
-		fi
-	fi
-	LockFile unlock
+	[ "$filter_mode" == "ignore" ] || [ "$filter_mode" == "watch" ] || [ "$filter_mode" == "iface" ] || return 0
+	[ ! -z "$serverchan_ignorelist" ] && ( ! echo "$serverchan_ignorelist"|grep -q -i -w $1) && return 0
+	[ ! -z "$serverchan_watchlist" ] && ( echo "$serverchan_watchlist"|grep -q -i -w $1) && return 0
+	[ ! -z "$serverchan_interface" ] && ( echo `getinterface ${1}`|grep -q -i -w $serverchan_interface ) && return 0
 }
 
 # 检测 ip 状况
 ip_changes(){
-	[ ! -z "$SERVERCHAN_IPV4" ] && [ "$SERVERCHAN_IPV4" -eq "1" ] && local IPv4=`getip wanipv4`
-	[ ! -z "$SERVERCHAN_IPV4" ] && [ "$SERVERCHAN_IPV4" -eq "2" ] && local IPv4=`getip hostipv4`
-	[ ! -z "$SERVERCHAN_IPV6" ] && [ "$SERVERCHAN_IPV6" -eq "1" ] && local IPv6=`getip wanipv6`
-	[ ! -z "$SERVERCHAN_IPV6" ] && [ "$SERVERCHAN_IPV6" -eq "2" ] && local IPv6=`getip hostipv6`
+	[ "$SERVERCHAN_IPV4"x = "1"x ] && local IPv4=`getip wanipv4`
+	[ "$SERVERCHAN_IPV4"x = "2"x ] && local IPv4=`getip hostipv4`
+	[ "$SERVERCHAN_IPV6"x = "1"x ] && local IPv6=`getip wanipv6`
+	[ "$SERVERCHAN_IPV6"x = "2"x ] && local IPv6=`getip hostipv6`
 
 	if [ -f ${WORKDIR}ip ]; then
 		local last_IPv4=$(cat "${WORKDIR}ip"|grep IPv4|awk '{print $2}'|grep -v "^$"|sort -u)
@@ -514,6 +468,44 @@ ip_changes(){
 		[ ! -z "$SERVERCHAN_IPV6" ] && [ "$SERVERCHAN_IPV6" -ne "0" ] && content="${content}${markdown_linefeed}${markdown_tab}当前IPv6：${IPv6}"
 	fi
 	
+}
+
+# 检测设备上线
+up(){
+	[ -f ${WORKDIR}ipAddress ] && ( cat ${WORKDIR}ipAddress|grep -q -w $1 ) && return
+	local ip_mac=`getmac $1`
+	local ip_interface=`getinterface ${ip_mac}`
+	getping ${1} ${UP_TIMEOUT} "1";local ping_online=$?
+	if [ "$ping_online" -eq "0" ]; then
+		LockFile lock
+		[ -f "${WORKDIR}tmp_downlist" ] && local tmp_downip=`cat ${WORKDIR}tmp_downlist|grep -w ${1}|grep -v "^$"|sort -u`
+		if [ ! -z "$tmp_downip" ]; then
+			cat ${WORKDIR}tmp_downlist|grep -w ${1}|grep -v "^$"|sort -u >> ${WORKDIR}ipAddress
+			sed -i "/^${1} /d" ${WORKDIR}tmp_downlist
+		else
+			local ip_name=`getname ${1} ${ip_mac}`
+			blackwhitelist ${ip_mac};local ip_blackwhite=$?
+			grep -w ${ip_mac} ${WORKDIR}ipAddress && return || echo "$1 ${ip_mac} ${ip_name} `date +%s` ${ip_interface}" >> ${WORKDIR}ipAddress
+			[ -f "${WORKDIR}send_enable.lock" ] || [ "$serverchan_up"x != "1"x ] || [ "$ip_blackwhite"x != "0"x ] && LockFile unlock && return
+			[ -f "${WORKDIR}title" ] && local title=`cat ${WORKDIR}title`
+			[ -f "${WORKDIR}content" ] && local content=`cat ${WORKDIR}content`	
+			if [ -z "$title" ]; then
+				local title="有设备【上线】"
+				local content="${markdown_linefeed}${ip_name} 连接了你的路由器${markdown_splitline}#### **<font color=#92D050>新设备连接</font>**${markdown_linefeed}${markdown_tab}客户端名：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_name}${markdown_linefeed}${markdown_tab}客户端IP： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${1}${markdown_linefeed}${markdown_tab}客户端MAC：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_mac}${markdown_linefeed}${markdown_tab}网络接口：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_interface}"
+			elif ( echo ${title}|grep -q "有设备【上线】" ); then
+				local title="有设备【上线】"
+				local content="${markdown_splitline}${markdown_tab}客户端名：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_name}${markdown_linefeed}${markdown_tab}客户端IP： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${1}${markdown_linefeed}${markdown_tab}客户端MAC：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_mac}${markdown_linefeed}${markdown_tab}网络接口：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_interface}"
+			else
+				local title="设备状态变化"
+				local content="${markdown_linefeed}${ip_name} 连接了你的路由器${markdown_splitline}#### **<font color=#92D050>新设备连接</font>**${markdown_linefeed}${markdown_tab}客户端名：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_name}${markdown_linefeed}${markdown_tab}客户端IP： ${markdown_space}${markdown_space}${markdown_space}${markdown_space}${1}${markdown_linefeed}${markdown_tab}客户端MAC：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_mac}${markdown_linefeed}${markdown_tab}网络接口：${markdown_space}${markdown_space}${markdown_space}${markdown_space}${markdown_space}${ip_interface}"
+			fi				
+			logger -t "【${APPTYPE}推送】" "新设备 ${ip_name} ${1} 连接了"
+			[ ! -z "$serverchan_watchlist" ] && local title="你偷偷关注的设备上线了"
+			[ ! -z "$title" ] && echo "$title" >${WORKDIR}title
+			[ ! -z "$content" ] && echo -n "$content" >>${WORKDIR}content
+		fi
+	fi
+	LockFile unlock
 }
 
 # 检测设备离线
@@ -597,9 +589,14 @@ current_device(){
 loop(){
 	# 循环
 	[ "$(nvram get serverchan_enable)" -eq "1" ] && logger -t "【${APPTYPE}推送】" "启动成功" || logger -t "【${APPTYPE}推送】" "脚本未成功启动，未设置启动参数 serverchan_enable"
+	[ "$serverchan_sheep"x = "1"x ] && logger -t "【${APPTYPE}推送】" "脚本挂起，时间为【`format_time \"$sheep_start_time\" |  sed \"s/./&:/2\"`】至【`format_time \"$sheep_end_time\" |  sed \"s/./&:/2\"`】"
+	[ "$serverchan_sheep"x = "2"x ] && logger -t "【${APPTYPE}推送】" "静默模式，时间为【`format_time \"$sheep_start_time\" |  sed \"s/./&:/2\"`】至【`format_time \"$sheep_end_time\" |  sed \"s/./&:/2\"`】"
 	while [ "$(nvram get serverchan_enable)" -eq "1" ]; do
-		deltemp;serverchan_disturb;local send_disturb=$?
-
+		deltemp
+		sc_sheep=""
+		serverchan_disturb
+		local send_disturb=$?
+		[ "$sc_sheep" = "hang on" ] && sleep 60 && continue
 		# 外网IP变化检测
 		if [ ! -z "$SERVERCHAN_IPV4" ] && [ ! -z "$SERVERCHAN_IPV6" ] && [ "$SERVERCHAN_IPV4" -ne "0" ] || [ "$SERVERCHAN_IPV6" -ne "0" ]; then
 	#		rand_geturl
@@ -623,6 +620,7 @@ loop(){
 
 		# CPU 检测
 		[ ! -f "${WORKDIR}send_enable.lock" ] && cpu_load
+		[ "$sc_sheep" = "silent" ] && sleep $sleeptime && continue
 		if [ ! -f "${WORKDIR}send_enable.lock" ] && [ ! -z "$title" ] && [ ! -z "$content" ]; then
 			[ ! -z "$device_name" ] && title="【${device_name}${CONTENT_TITLE}】$title"
 			title=`echo "$title"|sed $'s/\ / /g'|sed $'s/\"/%22/g'|sed $'s/\#/%23/g'|sed $'s/\&/%26/g'|sed $'s/\,/%2C/g'|sed $'s/\//%2F/g'|sed $'s/\:/%3A/g'|sed $'s/\;/%3B/g'|sed $'s/\=/%3D/g'|sed $'s/\@/%40/g'`
