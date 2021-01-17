@@ -302,6 +302,7 @@ down_oui(){
 	[ -f ${oui_base} ] && local logrow=$(grep -c "" ${oui_base}) || local logrow="0"
 	[ $logrow -lt "10" ] && rm -f ${oui_base} >/dev/null 2>&1
 	if [ ! -z "$oui_data" ] && [ "$oui_data" -ne "3" ] && [ ! -f ${oui_base} ]; then
+		ps | grep "curl -k -s -o ${WORKDIR}oui.txt" | grep -v grep && kill -9 `ps | grep "curl -k -s -o ${WORKDIR}oui.txt" | grep -v grep | awk '{print $1}'`
 		logger -t "【${APPTYPE}推送】" "【初始化】设备MAC厂商信息不存在，重新下载"
 		curl -k -s -o ${WORKDIR}oui.txt --connect-timeout 10 --retry 3 https://linuxnet.ca/ieee/oui.txt
 		if [ -f ${WORKDIR}oui.txt ] && [ "$oui_data" -eq "1" ]; then
