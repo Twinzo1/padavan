@@ -85,6 +85,27 @@ netsegment(){
 	lan_netmask=`nvram get lan_netmask`
 }
 
+# 下载设备MAC厂商信息
+down_oui(){
+	[ -f ${oui_base} ] && local logrow=$(grep -c "" ${oui_base}) || local logrow="0"
+	[ $logrow -lt "10" ] && rm -f ${oui_base} >/dev/null 2>&1
+	if [ ! -z "$oui_data" ] && [ "$oui_data" -ne "3" ] && [ ! -f ${oui_base} ]; then
+		pgrep "curl -k -s -o ${WORKDIR}oui.txt" && kill -9 `pgrep "curl -k -s -o ${WORKDIR}oui.txt"`
+		logger -t "【${APPTYPE}推送】" "【初始化】设备MAC厂商信息不存在，重新下载"
+		curl -k -s -o ${WORKDIR}oui.txt --connect-timeout 10 --retry 3 https://linuxnet.ca/ieee/oui.txt
+		if [ -f ${WORKDIR}oui.txt ] && [ "$oui_data" -eq "1" ]; then
+			cat ${WORKDIR}oui.txt|grep "base 16"|grep -i "apple\|aruba\|asus\|autelan\|belkin\|bhu\|buffalo\|cctf\|cisco\|comba\|datang\|dell\|dlink\|dowell\|ericsson\|fast\|feixun\|\
+fiberhome\|fujitsu\|grentech\|h3c\|hisense\|hiwifi\|honghai\|honghao\|hp\|htc\|huawei\|intel\|jinli\|jse\|lenovo\|lg\|liteon\|malata\|meizu\|mercury\|meru\|moto\|netcore\|\
+netgear\|nokia\|omron\|oneplus\|oppo\|philips\|router_unkown\|samsung\|shanzhai\|sony\|start_net\|sunyuanda\|tcl\|tenda\|texas\|tianyu\|tp-link\|ubq\|undefine\|VMware\|\
+utstarcom\|volans\|xerox\|xiaomi\|zdc\|zhongxing\|smartisan" > ${oui_base} && logger -t "【${APPTYPE}推送】" "【初始化】设备MAC厂商信息下载成功" || logger -t "【${APPTYPE}推送】" "【！！！】设备MAC厂商信息下载失败" 
+		fi
+		if [ -f ${WORKDIR}oui.txt ] && [ "$oui_data" -eq "2" ]; then
+			cat ${WORKDIR}oui.txt|grep "base 16" > ${oui_base} && logger -t "【${APPTYPE}推送】" "【初始化】设备MAC厂商信息下载成功" || logger -t "【${APPTYPE}推送】" "【！！！】设备MAC厂商信息下载失败"
+		fi
+		rm -f ${WORKDIR}oui.txt >/dev/null 2>&1
+	fi
+}
+
 # 获取静态ip设置的设备名称
 dhcp_staticname(){
 	local tmp_mac=`echo "$1" | sed 's/://g'`
@@ -295,27 +316,6 @@ getname(){
 	[ "$oui_data" -eq "3" ] && local tmp_name=$(curl -sS "http://standards-oui.ieee.org/oui.txt"|grep -i $(echo "$2"|cut -c 1,2,4,5,7,8)|sed -nr 's#^.*16)..(.*)#\1#gp'|sed 's/ /_/g')
 	[ -z "$tmp_name" ] && local tmp_name="unknown"
 	echo "$tmp_name"
-}
-
-# 下载设备MAC厂商信息
-down_oui(){
-	[ -f ${oui_base} ] && local logrow=$(grep -c "" ${oui_base}) || local logrow="0"
-	[ $logrow -lt "10" ] && rm -f ${oui_base} >/dev/null 2>&1
-	if [ ! -z "$oui_data" ] && [ "$oui_data" -ne "3" ] && [ ! -f ${oui_base} ]; then
-		ps | grep "curl -k -s -o ${WORKDIR}oui.txt" | grep -v grep && kill -9 `ps | grep "curl -k -s -o ${WORKDIR}oui.txt" | grep -v grep | awk '{print $1}'`
-		logger -t "【${APPTYPE}推送】" "【初始化】设备MAC厂商信息不存在，重新下载"
-		curl -k -s -o ${WORKDIR}oui.txt --connect-timeout 10 --retry 3 https://linuxnet.ca/ieee/oui.txt
-		if [ -f ${WORKDIR}oui.txt ] && [ "$oui_data" -eq "1" ]; then
-			cat ${WORKDIR}oui.txt|grep "base 16"|grep -i "apple\|aruba\|asus\|autelan\|belkin\|bhu\|buffalo\|cctf\|cisco\|comba\|datang\|dell\|dlink\|dowell\|ericsson\|fast\|feixun\|\
-fiberhome\|fujitsu\|grentech\|h3c\|hisense\|hiwifi\|honghai\|honghao\|hp\|htc\|huawei\|intel\|jinli\|jse\|lenovo\|lg\|liteon\|malata\|meizu\|mercury\|meru\|moto\|netcore\|\
-netgear\|nokia\|omron\|oneplus\|oppo\|philips\|router_unkown\|samsung\|shanzhai\|sony\|start_net\|sunyuanda\|tcl\|tenda\|texas\|tianyu\|tp-link\|ubq\|undefine\|VMware\|\
-utstarcom\|volans\|xerox\|xiaomi\|zdc\|zhongxing\|smartisan" > ${oui_base} && logger -t "【${APPTYPE}推送】" "【初始化】设备MAC厂商信息下载成功" || logger -t "【${APPTYPE}推送】" "【！！！】设备MAC厂商信息下载失败" 
-		fi
-		if [ -f ${WORKDIR}oui.txt ] && [ "$oui_data" -eq "2" ]; then
-			cat ${WORKDIR}oui.txt|grep "base 16" > ${oui_base} && logger -t "【${APPTYPE}推送】" "【初始化】设备MAC厂商信息下载成功" || logger -t "【${APPTYPE}推送】" "【！！！】设备MAC厂商信息下载失败"
-		fi
-		rm -f ${WORKDIR}oui.txt >/dev/null 2>&1
-	fi
 }
 
 # 流量数据单位换算
