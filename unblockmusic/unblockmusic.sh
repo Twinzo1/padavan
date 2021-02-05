@@ -2,7 +2,7 @@
 # 来源：https://github.com/chongshengB/rt-n56u/blob/master/trunk/user/unblockmusic/scripts/unblockmusic.sh
 
 generate_bin() {
-	cat << -EOF > /usr/bin/UnblockNeteaseMusicCloud
+	cat <<-EOF > /usr/bin/UnblockNeteaseMusicCloud
 #!/bin/sh
 
 while true
