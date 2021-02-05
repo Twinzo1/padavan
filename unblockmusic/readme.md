@@ -34,11 +34,11 @@ nvram set wyy_cloudserver="custom"
 # 自定义云解锁服务器（IP[域名]:HTTP端口:HTTPS端口）
 ## 如果服务器为LAN内网IP，需要将这个服务器IP放入例外客户端 (不代理HTTP和HTTPS)
 nvram set wyy_coustom_server="10.0.0.2:5200:5201"
-
+nvram commit
 ```
 ### 下载
 ```
-logger -t "【音乐解锁】" "正在下载旁路由辅助脚本"
+logger -t "【音乐解锁】" "正在下载解锁网易云灰色音乐脚本"
 if [ ! -e "/etc/storage/unblockmusic.sh" ]; then
     curl -k -s -o /etc/storage/bypa.sh --connect-timeout 10 --retry 3 https://ghproxy.com/https://raw.githubusercontent.com/Twinzo1/learning/master/padavan/unblockmusic/unblockmusic.sh -v
     chmod 755 /etc/storage/unblockmusic.sh && mtd_storage.sh save
