@@ -33,7 +33,7 @@ nvram set wyy_cloudserver="custom"
 
 # 自定义云解锁服务器（IP[域名]:HTTP端口:HTTPS端口）
 ## 如果服务器为LAN内网IP，需要将这个服务器IP放入例外客户端 (不代理HTTP和HTTPS)
-nvram set wyy_coustom_server="10.0.0.2:5200:5201"
+nvram set wyy_custom_server="10.0.0.2:5200:5201"
 nvram commit
 ```
 ### 下载
