@@ -42,8 +42,8 @@ logger -t "【音乐解锁】" "正在下载解锁网易云灰色音乐脚本"
 if [ ! -e "/etc/storage/unblockmusic.sh" ]; then
     curl -k -s -o /etc/storage/unblockmusic.sh --connect-timeout 10 --retry 3 https://ghproxy.com/https://raw.githubusercontent.com/Twinzo1/padavan/master/unblockmusic/unblockmusic.sh -v
     chmod 755 /etc/storage/unblockmusic.sh && mtd_storage.sh save
-    /etc/storage/unblockmusic.sh start
 else
     logger -t "【音乐解锁】" "脚本已存在，无需下载"
 fi
+/etc/storage/unblockmusic.sh start
 ```
