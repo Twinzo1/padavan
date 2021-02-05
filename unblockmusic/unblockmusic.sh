@@ -2,7 +2,7 @@
 # 来源：https://github.com/chongshengB/rt-n56u/blob/master/trunk/user/unblockmusic/scripts/unblockmusic.sh
 
 generate_bin() {
-	cat <<-EOF > /usr/bin/UnblockNeteaseMusicCloud
+	cat <<-EOF > /tmp/UnblockNeteaseMusicCloud
 #!/bin/sh
 
 while true
@@ -12,7 +12,7 @@ do
 	sleep 60m
 done
 EOF
-	chmod +x /usr/bin/UnblockNeteaseMusicCloud
+	chmod +x /tmp/UnblockNeteaseMusicCloud
 }
 check_host() {
   local host=$1
@@ -62,8 +62,8 @@ APPTYPE=$(nvram get wyy_apptype)
 FLAC=$(nvram get wyy_flac)
 
 CLOUD=$(nvram get wyy_cloudserver)
-if [ "$CLOUD" = "coustom" ];then
-CLOUD=$(nvram get wyy_coustom_server)
+if [ "$CLOUD" = "custom" ];then
+CLOUD=$(nvram get wyy_custom_server)
 fi
 cloudadd=$(echo "$CLOUD" | awk -F ':' '{print $1}')
 cloudhttp=$(echo "$CLOUD" | awk -F ':' '{print $2}')
@@ -150,7 +150,7 @@ wyy_start()
     logger -t "音乐解锁" "启动 Golang Version (http:5200, https:5201)"    
   else
     kill -9 $(busybox ps -w | grep 'sleep 60m' | grep -v grep | awk '{print $1}') >/dev/null 2>&1
-    /usr/bin/UnblockNeteaseMusicCloud >/dev/null 2>&1 &
+    /tmp/UnblockNeteaseMusicCloud >/dev/null 2>&1 &
      logger -t "音乐解锁" "启动 Cloud Version - Server: $cloudip (http:$cloudhttp, https:$cloudhttps)"
 	fi
 		
