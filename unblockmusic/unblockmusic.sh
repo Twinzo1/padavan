@@ -2,7 +2,7 @@
 # 来源：https://github.com/chongshengB/rt-n56u/blob/master/trunk/user/unblockmusic/scripts/unblockmusic.sh
 
 generate_bin() {
-cat > /usr/bin/UnblockNeteaseMusicCloud << EOF
+cat << -EOF > /usr/bin/UnblockNeteaseMusicCloud
 #!/bin/sh
 
 while true
@@ -11,7 +11,8 @@ do
   wget -q -t 99 -T 10 http://httpdns.n.netease.com/httpdns/v2/d?domain=music.163.com,interface.music.163.com,interface3.music.163.com,apm.music.163.com,apm3.music.163.com,clientlog.music.163.com,clientlog3.music.163.com -O- | grep -Eo '[0-9]+?\.[0-9]+?\.[0-9]+?\.[0-9]+?' | sort | uniq | awk '{print "ipset -! add music "$1}' | sh
 	sleep 60m
 done
-EOF
+	EOF
+	chmod +x /usr/bin/UnblockNeteaseMusicCloud
 }
 check_host() {
   local host=$1
@@ -179,6 +180,7 @@ stop)
 	;;
 restart)
 	wyy_close
+	generate_bin
 	wyy_start
 	;;
 *)
