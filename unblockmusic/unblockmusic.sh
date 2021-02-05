@@ -1,5 +1,18 @@
 #!/bin/sh
 # 来源：https://github.com/chongshengB/rt-n56u/blob/master/trunk/user/unblockmusic/scripts/unblockmusic.sh
+
+generate_bin() {
+cat > /usr/bin/UnblockNeteaseMusicCloud << EOF
+#!/bin/sh
+
+while true
+do
+  ipset -! -N music hash:ip
+  wget -q -t 99 -T 10 http://httpdns.n.netease.com/httpdns/v2/d?domain=music.163.com,interface.music.163.com,interface3.music.163.com,apm.music.163.com,apm3.music.163.com,clientlog.music.163.com,clientlog3.music.163.com -O- | grep -Eo '[0-9]+?\.[0-9]+?\.[0-9]+?\.[0-9]+?' | sort | uniq | awk '{print "ipset -! add music "$1}' | sh
+	sleep 60m
+done
+EOF
+}
 check_host() {
   local host=$1
   if echo $host | grep -E "^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$" >/dev/null; then
@@ -158,6 +171,7 @@ wyy_close()
 
 case $1 in
 start)
+	generate_bin
 	wyy_start
 	;;
 stop)
