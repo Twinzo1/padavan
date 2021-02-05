@@ -1,5 +1,5 @@
 ## 说明
-### 参数
+### 参数设置
 ```
 # 设置局域网设备代理模式
 # 有多少设备
@@ -35,4 +35,15 @@ nvram set wyy_cloudserver="custom"
 ## 如果服务器为LAN内网IP，需要将这个服务器IP放入例外客户端 (不代理HTTP和HTTPS)
 nvram set wyy_coustom_server="10.0.0.2:5200:5201"
 
+```
+### 下载
+```
+logger -t "【音乐解锁】" "正在下载旁路由辅助脚本"
+if [ ! -e "/etc/storage/unblockmusic.sh" ]; then
+    curl -k -s -o /etc/storage/bypa.sh --connect-timeout 10 --retry 3 https://ghproxy.com/https://raw.githubusercontent.com/Twinzo1/learning/master/padavan/unblockmusic/unblockmusic.sh -v
+    chmod 755 /etc/storage/unblockmusic.sh && mtd_storage.sh save
+    /etc/storage/unblockmusic.sh start
+else
+    logger -t "【音乐解锁】" "脚本已存在，无需下载"
+fi
 ```
