@@ -1,8 +1,10 @@
 #!/bin/sh
 # 来源：https://github.com/chongshengB/rt-n56u/blob/master/trunk/user/unblockmusic/scripts/unblockmusic.sh
 
+WORKDIR="/tmp/unblockmusic"
+[ -d "$WORKDIR"] && mkdir -p ${WORKDIR}
 generate_bin() {
-	cat <<-EOF > /tmp/UnblockNeteaseMusicCloud
+	cat <<-EOF > ${WORKDIR}/UnblockNeteaseMusicCloud
 #!/bin/sh
 
 while true
@@ -12,11 +14,41 @@ do
 	sleep 60m
 done
 EOF
-	chmod +x /tmp/UnblockNeteaseMusicCloud
+	chmod +x ${WORKDIR}/UnblockNeteaseMusicCloud
+	cat <<-EOF ${WORKDIR}/logcheck.sh
+#!/bin/sh
+
+log_max_size=100
+log_file="${WORKDIR}/unblockmusic.log"
+log_size=0
+
+${WORKDIR}/getmusicip.sh
+sleep 29s
+
+while true
+do
+  icount=`busybox ps -w | grep UnblockNeteaseMusic | grep -v grep | grep -v logcheck.sh`
+	if [ -z "$icount" ]; then
+      ${WORKDIR}/getmusicip.sh
+      ${WORKDIR}/unblockmusic restart 
+  fi
+	log_size=$(expr $(ls -l $log_file | awk '{print $5}') / 1024)
+	[ $log_size -ge $log_max_size ] && echo "$(date -R) # Start UnblockNeteaseMusic" >${WORKDIR}/unblockmusic.log
+	sleep 29s
+done
+EOF
+	chmod +x ${WORKDIR}/logcheck.sh
+	cat <<-EOF ${WORKDIR}/getmusicip.sh
+#!/bin/sh
+
+ipset -! -N music hash:ip
+wget -q -t 99 -T 10 http://httpdns.n.netease.com/httpdns/v2/d?domain=music.163.com,interface.music.163.com,interface3.music.163.com,apm.music.163.com,apm3.music.163.com,clientlog.music.163.com,clientlog3.music.163.com -O- | grep -Eo '[0-9]+?\.[0-9]+?\.[0-9]+?\.[0-9]+?' | sort | uniq | awk '{print "ipset -! add music "$1}' | sh
+EOF
+	chmod +x ${WORKDIR}/getmusicip.sh
 }
 check_host() {
-  local host=$1
-  if echo $host | grep -E "^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$" >/dev/null; then
+	local host=$1
+	if echo $host | grep -E "^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$" >/dev/null; then
 		hostip=$host
 	elif [ "$host" != "${host#*:[0-9a-fA-F]}" ]; then
 		hostip=$host
@@ -28,7 +60,7 @@ check_host() {
 			hostip="127.0.0.1"
 		fi
 	fi
-	echo -e $hostip
+echo -e $hostip
 }
 
 ip_rule()
@@ -63,7 +95,7 @@ FLAC=$(nvram get wyy_flac)
 
 CLOUD=$(nvram get wyy_cloudserver)
 if [ "$CLOUD" = "custom" ];then
-CLOUD=$(nvram get wyy_custom_server)
+	CLOUD=$(nvram get wyy_custom_server)
 fi
 cloudadd=$(echo "$CLOUD" | awk -F ':' '{print $1}')
 cloudhttp=$(echo "$CLOUD" | awk -F ':' '{print $2}')
@@ -75,9 +107,9 @@ ipt_n="iptables -t nat"
 
 add_rule()
 {
-  ipset -! -N music hash:ip
-  ipset -! -N music_http hash:ip
-  ipset -! -N music_https hash:ip
+	ipset -! -N music hash:ip
+	ipset -! -N music_http hash:ip
+	ipset -! -N music_https hash:ip
 	$ipt_n -N CLOUD_MUSIC
 	$ipt_n -A CLOUD_MUSIC -d 0.0.0.0/8 -j RETURN
 	$ipt_n -A CLOUD_MUSIC -d 10.0.0.0/8 -j RETURN
@@ -88,11 +120,11 @@ add_rule()
 	$ipt_n -A CLOUD_MUSIC -d 224.0.0.0/4 -j RETURN
 	$ipt_n -A CLOUD_MUSIC -d 240.0.0.0/4 -j RETURN
 	if [ "$APPTYPE" != "cloud" ]; then
-    $ipt_n -A CLOUD_MUSIC -p tcp -m set ! --match-set music_http src --dport 80 -j REDIRECT --to-ports 5200
-    $ipt_n -A CLOUD_MUSIC -p tcp -m set ! --match-set music_https src --dport 443 -j REDIRECT --to-ports 5201
-  else
-    $ipt_n -A CLOUD_MUSIC -p tcp -m set ! --match-set music_http src --dport 80 -j DNAT --to $cloudip:$cloudhttp
-    $ipt_n -A CLOUD_MUSIC -p tcp -m set ! --match-set music_https src --dport 443 -j DNAT --to $cloudip:$cloudhttps
+		$ipt_n -A CLOUD_MUSIC -p tcp -m set ! --match-set music_http src --dport 80 -j REDIRECT --to-ports 5200
+		$ipt_n -A CLOUD_MUSIC -p tcp -m set ! --match-set music_https src --dport 443 -j REDIRECT --to-ports 5201
+	else
+		$ipt_n -A CLOUD_MUSIC -p tcp -m set ! --match-set music_http src --dport 80 -j DNAT --to $cloudip:$cloudhttp
+		$ipt_n -A CLOUD_MUSIC -p tcp -m set ! --match-set music_https src --dport 443 -j DNAT --to $cloudip:$cloudhttps
 	fi
 	$ipt_n -I PREROUTING -p tcp -m set --match-set music dst -j CLOUD_MUSIC
 	iptables -I OUTPUT -d 223.252.199.10 -j DROP
@@ -126,12 +158,12 @@ ipset=/apm3.music.163.com/music
 ipset=/clientlog.music.163.com/music
 ipset=/clientlog3.music.163.com/music
 	EOF
-sed -i '/dnsmasq.music/d' /etc/storage/dnsmasq/dnsmasq.conf
-cat >> /etc/storage/dnsmasq/dnsmasq.conf << EOF
+	sed -i '/dnsmasq.music/d' /etc/storage/dnsmasq/dnsmasq.conf
+	cat >> /etc/storage/dnsmasq/dnsmasq.conf << EOF
 conf-dir=/tmp/dnsmasq.music
 EOF
-add_rule
-/sbin/restart_dhcpd
+	add_rule
+	/sbin/restart_dhcpd
 }
 
 wyy_start()
@@ -143,22 +175,22 @@ wyy_start()
 		musictype="-o $TYPE"
 	fi
 	if [ "$APPTYPE" == "go" ]; then
-	if [ $FLAC -eq 1 ]; then
-      ENABLE_FLAC="-b "
-    fi
-    UnblockNeteaseMusic $ENABLE_FLAC -p 5200 -sp 5201 -m 0 -c /etc_ro/UnblockNeteaseMusicGo/server.crt -k /etc_ro/UnblockNeteaseMusicGo/server.key -m 0 -e >/dev/null 2>&1 &
-    logger -t "音乐解锁" "启动 Golang Version (http:5200, https:5201)"    
-  else
-    kill -9 $(busybox ps -w | grep 'sleep 60m' | grep -v grep | awk '{print $1}') >/dev/null 2>&1
-    /tmp/UnblockNeteaseMusicCloud >/dev/null 2>&1 &
-     logger -t "音乐解锁" "启动 Cloud Version - Server: $cloudip (http:$cloudhttp, https:$cloudhttps)"
+		if [ $FLAC -eq 1 ]; then
+			ENABLE_FLAC="-b "
+		fi
+		UnblockNeteaseMusic $ENABLE_FLAC -p 5200 -sp 5201 -m 0 -c /etc_ro/UnblockNeteaseMusicGo/server.crt -k /etc_ro/UnblockNeteaseMusicGo/server.key -m 0 -e >/dev/null 2>&1 &
+		logger -t "音乐解锁" "启动 Golang Version (http:5200, https:5201)"    
+	else
+		kill -9 $(busybox ps -w | grep 'sleep 60m' | grep -v grep | awk '{print $1}') >/dev/null 2>&1
+		${WORKDIR}/UnblockNeteaseMusicCloud >/dev/null 2>&1 &
+		logger -t "音乐解锁" "启动 Cloud Version - Server: $cloudip (http:$cloudhttp, https:$cloudhttps)"
 	fi
 		
 	set_firewall
 	
-  if [ "$APPTYPE" != "cloud" ]; then
-    /usr/bin/logcheck.sh >/dev/null 2>&1 &
-  fi
+	if [ "$APPTYPE" != "cloud" ]; then
+		${WORKDIR}/logcheck.sh >/dev/null 2>&1 &
+	fi
 }
 
 wyy_close()
