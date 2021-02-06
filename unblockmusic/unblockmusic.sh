@@ -28,12 +28,12 @@ sleep 29s
 while true
 do
 	icount=`busybox ps -w | grep UnblockNeteaseMusic | grep -v grep | grep -v logcheck.sh`
-	if [ -z "$icount" ]; then
+	if [ -z "\$icount" ]; then
 		${WORKDIR}/getmusicip.sh
-		${WORKDIR}/unblockmusic restart 
+		${WORKDIR}/unblockmusic.sh restart 
 	fi
-	log_size=$(expr $(ls -l $log_file | awk '{print $5}') / 1024)
-	[ $log_size -ge $log_max_size ] && echo "$(date -R) # Start UnblockNeteaseMusic" >${WORKDIR}/unblockmusic.log
+	log_size=\$(expr \$(ls -l \$log_file | awk '{print $5}') / 1024)
+	[ \$log_size -ge \$log_max_size ] && echo "\$(date -R) # Start UnblockNeteaseMusic" >${WORKDIR}/unblockmusic.log
 	sleep 29s
 done
 EOF
