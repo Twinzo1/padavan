@@ -2,7 +2,7 @@
 # 来源：https://github.com/chongshengB/rt-n56u/blob/master/trunk/user/unblockmusic/scripts/unblockmusic.sh
 
 WORKDIR="/tmp/unblockmusic"
-[ -d "$WORKDIR"] && mkdir -p ${WORKDIR}
+[ ! -d "$WORKDIR" ] && mkdir -p ${WORKDIR}
 generate_bin() {
 	cat <<-EOF > ${WORKDIR}/UnblockNeteaseMusicCloud
 #!/bin/sh
