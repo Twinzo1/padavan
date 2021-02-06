@@ -10,7 +10,7 @@ generate_bin() {
 while true
 do
 	ipset -! -N music hash:ip
-	wget -q -t 99 -T 10 http://httpdns.n.netease.com/httpdns/v2/d?domain=music.163.com,interface.music.163.com,interface3.music.163.com,apm.music.163.com,apm3.music.163.com,clientlog.music.163.com,clientlog3.music.163.com -O- | grep -Eo '[0-9]+?\.[0-9]+?\.[0-9]+?\.[0-9]+?' | sort | uniq | awk '{print "ipset -! add music "$1}' | sh
+	wget -q -t 99 -T 10 http://httpdns.n.netease.com/httpdns/v2/d?domain=music.163.com,interface.music.163.com,interface3.music.163.com,apm.music.163.com,apm3.music.163.com,clientlog.music.163.com,clientlog3.music.163.com -O- | grep -Eo '[0-9]+?\.[0-9]+?\.[0-9]+?\.[0-9]+?' | sort | uniq | awk '{print "ipset -! add music "\$1}' | sh
 	sleep 60m
 done
 EOF
@@ -27,12 +27,12 @@ sleep 29s
 
 while true
 do
-	icount=`busybox ps -w | grep UnblockNeteaseMusic | grep -v grep | grep -v logcheck.sh`
+	icount=\`busybox ps -w | grep UnblockNeteaseMusic | grep -v grep | grep -v logcheck.sh\`
 	if [ -z "\$icount" ]; then
 		${WORKDIR}/getmusicip.sh
 		${WORKDIR}/unblockmusic.sh restart 
 	fi
-	log_size=\$(expr \$(ls -l \$log_file | awk '{print $5}') / 1024)
+	log_size=\$(expr \$(ls -l \$log_file | awk '{print \$5}') / 1024)
 	[ \$log_size -ge \$log_max_size ] && echo "\$(date -R) # Start UnblockNeteaseMusic" >${WORKDIR}/unblockmusic.log
 	sleep 29s
 done
@@ -42,7 +42,7 @@ EOF
 #!/bin/sh
 
 ipset -! -N music hash:ip
-wget -q -t 99 -T 10 http://httpdns.n.netease.com/httpdns/v2/d?domain=music.163.com,interface.music.163.com,interface3.music.163.com,apm.music.163.com,apm3.music.163.com,clientlog.music.163.com,clientlog3.music.163.com -O- | grep -Eo '[0-9]+?\.[0-9]+?\.[0-9]+?\.[0-9]+?' | sort | uniq | awk '{print "ipset -! add music "$1}' | sh
+wget -q -t 99 -T 10 http://httpdns.n.netease.com/httpdns/v2/d?domain=music.163.com,interface.music.163.com,interface3.music.163.com,apm.music.163.com,apm3.music.163.com,clientlog.music.163.com,clientlog3.music.163.com -O- | grep -Eo '[0-9]+?\.[0-9]+?\.[0-9]+?\.[0-9]+?' | sort | uniq | awk '{print "ipset -! add music "\$1}' | sh
 EOF
 	chmod +x ${WORKDIR}/getmusicip.sh
 }
