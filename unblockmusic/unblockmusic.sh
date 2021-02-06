@@ -15,7 +15,7 @@ do
 done
 EOF
 	chmod +x ${WORKDIR}/UnblockNeteaseMusicCloud
-	cat <<-EOF ${WORKDIR}/logcheck.sh
+	cat <<-EOF > ${WORKDIR}/logcheck.sh
 #!/bin/sh
 
 log_max_size=100
@@ -38,7 +38,7 @@ do
 done
 EOF
 	chmod +x ${WORKDIR}/logcheck.sh
-	cat <<-EOF ${WORKDIR}/getmusicip.sh
+	cat <<-EOF > ${WORKDIR}/getmusicip.sh
 #!/bin/sh
 
 ipset -! -N music hash:ip
