@@ -42,7 +42,7 @@ v2ray_bin(){
 	if [ ! -f "$ret" ]; then
 		ret="/tmp/v2ray/v2ray"
 		mkdir -p /tmp/v2ray/
-		curl -k -s -o ./v2ray --connect-timeout 10 --retry 3 "$v2ray_url" > "$ret"
+		curl -k -s -o "$ret" --connect-timeout 10 --retry 3 "$v2ray_url"
 		chmod 755 $ret
 	fi
 	logger -t "SS" "v2ray 二进制文件下载完成"
