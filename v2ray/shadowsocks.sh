@@ -33,6 +33,22 @@ lan_con=`nvram get lan_con`
 GLOBAL_SERVER=`nvram get global_server`
 socks=""
 
+v2ray_bin(){
+	ret="/usr/bin/v2ray"
+	[ ! -f "$ret" ] && ret="/tmp/v2ray/v2ray"
+	v2ray_url=`nvram get ss_v2ray_url`
+	logger -t "SS" "正在下载 v2ray 二进制文件,可通过 ss_v2ray_url 设定下载地址"
+	[ -z "$v2ray_url" ] && v2ray_url="https://ghproxy.com/https://raw.githubusercontent.com/Twinzo1/padavan/master/v2ray/v2ray"
+	if [ ! -f "$ret" ]; then
+		ret="/tmp/v2ray/v2ray"
+		mkdir -p /tmp/v2ray/
+		curl -k -s -o ./v2ray --connect-timeout 10 --retry 3 "$v2ray_url" > "$ret"
+		chmod 755 $ret
+	fi
+	logger -t "SS" "v2ray 二进制文件下载完成"
+	echo $ret
+}
+
 find_bin() {
 	case "$1" in
 	ss) ret="/usr/bin/ss-redir" ;;
@@ -40,7 +56,7 @@ find_bin() {
 	ssr) ret="/usr/bin/ssr-redir" ;;
 	ssr-local) ret="/usr/bin/ssr-local" ;;
 	ssr-server) ret="/usr/bin/ssr-server" ;;
-	v2ray) ret="/usr/bin/v2ray" ;;
+	v2ray) ret=`v2ray_bin` ;;
 	trojan) ret="/usr/bin/trojan" ;;
 	socks5) ret="/usr/bin/ipt2socks" ;;
 	esac
@@ -76,7 +92,7 @@ local type=$stype
 		fi
 		;;
 	v2ray)
-		v2_bin="/usr/bin/v2ray"
+		ret=`v2ray_bin`
 		v2ray_enable=1
 		if [ "$2" = "1" ]; then
 		lua /etc_ro/ss/genv2config.lua $1 udp 1080 >/tmp/v2-ssr-reudp.json
