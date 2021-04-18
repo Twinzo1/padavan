@@ -6,8 +6,8 @@ script smartdns for hiboy padavan
 
 ```
 logger -t "SmartDNS" "正在下载smartdns脚本"
-curl -k -s -o /opt/bin/smartdns.sh --connect-timeout 10 --retry 3 https://ghproxy.com/https://raw.githubusercontent.com/Twinzo1/padavan/master/smartdns/smartdns.sh
-chmod 755 /opt/bin/smartdns.sh && /opt/bin/smartdns.sh start
+curl -k -s -o /etc/storage/smartdns.sh --connect-timeout 10 --retry 3 https://ghproxy.com/https://raw.githubusercontent.com/Twinzo1/padavan/master/smartdns/smartdns.sh
+chmod 755 /etc/storage/smartdns.sh && /etc/storage/smartdns.sh start
 ```
 
 hiboy已经内置smartdns，在搭建web环境→chinadns-ng里
