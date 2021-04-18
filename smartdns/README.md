@@ -6,7 +6,7 @@ script smartdns for hiboy padavan
 
 ```
 logger -t "SmartDNS" "正在下载smartdns脚本"
-curl -k -s -o /opt/bin/smartdns.sh --connect-timeout 10 --retry 3 https://raw.githubusercontent.com/Twinzo1/padavan/master/smartdns/smartdns.sh
+curl -k -s -o /opt/bin/smartdns.sh --connect-timeout 10 --retry 3 https://ghproxy.com/https://raw.githubusercontent.com/Twinzo1/padavan/master/smartdns/smartdns.sh
 chmod 755 /opt/bin/smartdns.sh && /opt/bin/smartdns.sh start
 ```
 
