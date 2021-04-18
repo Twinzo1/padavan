@@ -7,7 +7,8 @@ ADDRESS_CONF="$SMARTDNS_CONF_DIR/smartdns_address.conf"
 BLACKLIST_IP_CONF="$SMARTDNS_CONF_DIR/smartdns_blacklist-ip.conf"
 # WHITELIST_IP_CONF="$SMARTDNS_CONF_DIR/smartdns_whitelist-ip.conf"
 CUSTOM_CONF="$SMARTDNS_CONF_DIR/smartdns_custom.conf"
-[ ! -e "/usr/bin/smartdns" ] && smartdns_file="/opt/bin/smartdns" || smartdns_file="/usr/bin/smartdns"
+smartdns_file="/usr/bin/smartdns"
+[ ! -f $smartdns_file ] && smartdns_file="/opt/bin/smartdns"
 ##########################常规设置###############################
 nvram set sdns_enable="1" 		#启用
 nvram set sdns_name="PDCN"		#服务器名称
@@ -356,7 +357,7 @@ dw_smartdns(){
 }
 
 start_smartdns(){
-	[ ! -f "$smartdns_file" ] && dw_smartdns
+	[ ! -e "$smartdns_file" ] && dw_smartdns
 
 	args=""
 	logger -t "【SmartDNS】" "创建配置文件."
