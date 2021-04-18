@@ -1,5 +1,5 @@
 #!/bin/sh
-# Version: v1.0
+# Version: v1.1
 SMARTDNS_CONF_DIR="/opt/etc/smartdns"
 [ ! -d "$SMARTDNS_CONF_DIR" ] && mkdir $SMARTDNS_CONF_DIR
 SMARTDNS_CONF="$SMARTDNS_CONF_DIR/smartdns.conf"
@@ -7,7 +7,7 @@ ADDRESS_CONF="$SMARTDNS_CONF_DIR/smartdns_address.conf"
 BLACKLIST_IP_CONF="$SMARTDNS_CONF_DIR/smartdns_blacklist-ip.conf"
 # WHITELIST_IP_CONF="$SMARTDNS_CONF_DIR/smartdns_whitelist-ip.conf"
 CUSTOM_CONF="$SMARTDNS_CONF_DIR/smartdns_custom.conf"
-smartdns_file="/opt/bin/smartdns"
+[ ! -e "/usr/bin/smartdns" ] && smartdns_file="/opt/bin/smartdns" || smartdns_file="/usr/bin/smartdns"
 ##########################常规设置###############################
 nvram set sdns_enable="1" 		#启用
 nvram set sdns_name="PDCN"		#服务器名称
@@ -341,7 +341,8 @@ gensdnssecond(){
 }
 
 dw_smartdns(){
-	curl -k -s -o /opt/bin/smartdns --connect-timeout 10 --retry 3 https://ghproxy.com/https://github.com/Twinzo1/padavan/blob/master/smartdns/smartdns?raw=true
+	curl -k -s -o $smartdns_file --connect-timeout 10 --retry 3 https://ghproxy.com/https://github.com/Twinzo1/padavan/blob/master/smartdns/smartdns?raw=true
+	wait
 # 	curl -k -s -o $smartdns_file --connect-timeout 10 --retry 3 https://dev.tencent.com/u/dtid_39de1afb676d0d78/p/kp/git/raw/master/smartdns
 	if [ ! -f "$smartdns_file" ]; then
 		logger -t "【SmartDNS】" "SmartDNS二进制文件下载失败，可能是地址失效或者网络异常！"
